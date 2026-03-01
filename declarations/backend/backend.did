@@ -1,0 +1,117 @@
+type http_request_result = 
+ record {
+   body: blob;
+   headers: vec http_header;
+   status: nat;
+ };
+type http_header = 
+ record {
+   name: text;
+   value: text;
+ };
+type UserRole = 
+ variant {
+   admin;
+   guest;
+   user;
+ };
+type UserProfile = record {name: text;};
+type TransformationOutput = 
+ record {
+   body: blob;
+   headers: vec http_header;
+   status: nat;
+ };
+type TransformationInput = 
+ record {
+   context: blob;
+   response: http_request_result;
+ };
+type Time = int;
+type QuickFacts = 
+ record {
+   bestKnownFor: text;
+   hiddenGem: text;
+   localTip: text;
+ };
+type PlaceStatus = 
+ variant {
+   planning;
+   researched;
+   toResearch;
+   visited;
+   wantToGo;
+   wouldReturn;
+ };
+type Place = 
+ record {
+   attractions: vec text;
+   author: principal;
+   bestTimeToVisit: text;
+   budgetRange: BudgetRange;
+   city: text;
+   country: text;
+   id: text;
+   images: vec text;
+   notes: text;
+   quickFacts: QuickFacts;
+   stateRegion: text;
+   status: vec PlaceStatus;
+   tags: vec text;
+   timestamp: Time;
+ };
+type Note = 
+ record {
+   author: principal;
+   content: text;
+   placeId: text;
+   timestamp: Time;
+ };
+type FileReference = 
+ record {
+   hash: text;
+   path: text;
+ };
+type BudgetRange = 
+ variant {
+   high;
+   low;
+   medium;
+ };
+service : {
+  addNote: (note: Note) -> ();
+  addPlace: (place: Place) -> ();
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  autocomplete: (input: text) -> (text);
+  deleteAllPlaces: () -> ();
+  deletePlace: (id: text) -> ();
+  dropFileReference: (path: text) -> ();
+  filterPlacesByCountry: (country: text) -> (vec Place) query;
+  findPlaceFromText: (input: text) -> (text);
+  getAllPlaces: () -> (vec Place) query;
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  getCallerUserRole: () -> (UserRole) query;
+  getFileReference: (path: text) -> (FileReference) query;
+  getNotesForPlace: (placeId: text) -> (vec Note) query;
+  getPhoto: (photoReference: text) -> (text);
+  getPlace: (id: text) -> (opt Place) query;
+  getPlaceDetails: (placeId: text) -> (text);
+  getRandomToResearchPlace: () -> (opt Place) query;
+  getStats: () ->
+   (record {
+      researchedPlaces: nat;
+      toResearchPlaces: nat;
+      totalPlaces: nat;
+    }) query;
+  getUserProfile: (user: principal) -> (opt UserProfile) query;
+  initializeAccessControl: () -> ();
+  isCallerAdmin: () -> (bool) query;
+  listFileReferences: () -> (vec FileReference) query;
+  nearbySearch: (lat: float64, lon: float64) -> (text);
+  queryAutocomplete: (input: text) -> (text);
+  registerFileReference: (path: text, hash: text) -> ();
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+  searchPlaces: (term: text) -> (vec Place) query;
+  textSearch: (searchQuery: text) -> (text);
+  transform: (input: TransformationInput) -> (TransformationOutput) query;
+}

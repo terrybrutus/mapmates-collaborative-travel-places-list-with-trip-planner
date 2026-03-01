@@ -1,0 +1,550 @@
+# MapMates   Collaborative Travel Places List with Trip Planner
+
+A web application for collaboratively building and managing a shared list of travel destinations with research tracking, detailed place information, activity tracking, simplified user management, and trip planning capabilities.
+
+## Core Features
+
+### User Management
+- User authentication using Internet Identity with secure principal ID association
+- User signup with display names for clear identification across the application
+- Universal display of signup names with partial principal IDs across all user-facing areas including activity logs, statistics, user lists, and any other interface elements showing user information for clear user identification
+- Founder designation for the original user with permanent admin status and full administrative privileges
+- All other users automatically have standard user privileges allowing them to add, edit, and delete only their own places
+- User ownership system ensuring users can only modify content they created
+- Admin features and administrative functions visible only to the founder
+- Comprehensive user tracking system that reliably captures and stores all users who have logged in or contributed to the application
+- Real-time user registration tracking ensuring all new signups are immediately captured and stored in the backend
+- Complete user registry with principal IDs, signup names, and registration timestamps for all users who have ever accessed the application
+- Accurate user statistics displaying total users with real-time updates
+
+### User Interface Organization
+- Login screen with login button positioned in the top right corner with clean appearance without any background graphics, gradients, or decorative elements
+- Landing page featuring the MapMates logo from "https://i.imgur.com/OmgQN1q.png" as the main centerpiece element at 40-50% of the original double size (reduced by 50-60% from the previous double size) for a more balanced and proportional appearance, replacing any previous branding elements, with responsive scaling and visually appealing presentation across all screen sizes
+- Landing page feature boxes with custom images:
+  - "Discover Places" box uses the image "https://i.imgur.com/RvjjNgw.gif" instead of emoji
+  - "Collaborate" box uses the image "https://i.imgur.com/otenCBb.gif" instead of emoji
+  - "Plan Adventures" box uses the image "https://i.imgur.com/aiNJ0Xd.gif" instead of emoji
+- Feature box images styled to fit cleanly and responsively within their boxes, maintaining a visually appealing and consistent layout across all devices
+- Enhanced dynamic color shift background using CSS radial gradient that updates in real-time based on cursor position, with horizontal cursor position controlling hue (0–360°) and vertical position controlling lightness using HSL color space for smooth transitions
+- Improved cursor trail animation with enhanced focal point visibility through increased opacity and reduced blur/softness for better definition while maintaining soft, elegant edges and non-distracting appearance
+- Radial gradient emanating from cursor position with smooth, subtle transitions between color states that is elegant and not distracting
+- Background color system ensuring all text remains readable at all times with proper contrast
+- Dynamic background applied globally across all main pages and responsive across all devices
+- All non-landing pages display the same logo from "https://i.imgur.com/OmgQN1q.png" in the top left corner, positioned to the left of the 'Welcome [userName]' text, maintaining current size and making it clickable to navigate back to the main Places page
+- Clickable logo functionality on all non-landing pages that navigates users back to the main Places page when clicked
+- Clean top bar displaying essential information for all users: clickable logo in top left, user greeting and logout button with clean appearance without any background graphics, gradients, or decorative elements
+- Responsive logo implementation that scales appropriately across all screen sizes and devices while maintaining visual appeal and proper alignment at the reduced size (40-50% of original double size) on landing page and standard size in top left corner on other pages
+- Logo integration replacing all previous branding elements throughout the application
+- Universal hamburger menu accessible to all users on all screen sizes and orientations that overlays the navigation bar and appears at the forefront of the screen when opened, rather than expanding inside the nav and stretching it vertically
+- Hamburger menu options styled as clear, clickable buttons with proper left and right padding for professional appearance and usability
+- Hamburger menu with click-outside-to-close functionality and proper 'X' button for closing
+- Universal hamburger menu containing notifications panel, user-specific controls, and Trip Planner access
+- Settings section within menu containing export functions, import functions, and other administrative features (admin-only features visible only to founder)
+- Fully functional "Import Places" button in the hamburger menu that reliably opens the import modal with complete functionality and proper overlay behavior
+- Import modal that opens correctly when triggered from the hamburger menu with all expected features and responsive design
+- Notifications panel integrated into universal hamburger menu for all users
+- Navigation tab buttons ("Places", "Trip Planner", "Statistics", "Activity Log (All Users)") with sufficient horizontal padding, clear button styling, and visible separation, making them look and feel selectable and not crowded
+- Navigation tab styling ensuring all tab labels are fully visible and not cut off inside their buttons, with text fitting comfortably within the blue background on all screen sizes
+- Universal overlay close functionality allowing users to close all popup and modal components by clicking anywhere on the overlay background (not just the "X" button), including image viewers, menu, and all other modal components
+- Popup system ensuring all popups (including Trip Details, Image Lightbox, Import Modal, Add Place, and all other modal components) are always centered, properly sized for readability on all screens, with proper scrolling capabilities and no content cut off
+- Mobile-optimized modal dialogs that account for browser chrome (top and bottom bars) ensuring all interactive elements remain fully visible and accessible on mobile browsers
+- Modal positioning system that prevents dialogs from extending behind browser UI elements on any device or orientation
+- Responsive modal layout that adapts to viewport constraints while maintaining full accessibility of all buttons and controls
+- Popup focus system making popups the primary focus when open with click-outside-to-close functionality and always visible, accessible close buttons
+- Comprehensive modal and popup component system ensuring all modals, overlays, and popups open, display, and function correctly on all devices with proper visibility, scrolling capabilities, and touch interaction support
+- All menu and navigation changes fully responsive and visually appealing across all devices and screen sizes
+
+### Enhanced Place Information
+- Enhanced destination details with comprehensive location information
+- Place cards displaying detailed information in a clear, organized format
+- Enhanced place information system that can accommodate additional data fields as they become available
+
+### Trip Planner with Distance Calculation
+- Trip Planner page accessible through universal hamburger menu
+- Trip List displaying all user-created trips, grouped and sorted for easy browsing
+- Create Trip button opening a form for creating new trips with trip name field and place selection from the user's places list
+- Trip creation interface allowing users to select multiple places from their saved places to include in the trip
+- Edit Trip functionality with edit button on each trip card allowing authorized users (founder/admin or trip creator) to modify trip details and included places
+- Delete Trip functionality with trashcan button on each trip card allowing authorized users to delete trips with confirmation dialog
+- Delete All Trips button (admin/founder-only) for bulk deletion of all trips with proper confirmation and backend support
+- Trip Details Modal accessible by clicking "View Details" on trip cards, showing all places in the trip with their order and key details (city, country, tags, best time to visit, etc.)
+- Mobile-optimized Trip Details Modal that accounts for browser chrome and ensures all content remains accessible on mobile devices
+- Suggested Activities section in trip details modal that suggests activities based on the tags of included places in the trip
+- Trip creator identification showing the creator's signup name and partial principal ID on each trip card and in trip details
+- Role-based access control ensuring only founder/admin and trip creators can edit or delete trips, while others can view but not modify
+- Trip activity logging for creation, editing, and deletion actions visible in the main activity feed
+
+### Place Management
+- Unified Places page with integrated dropdown arrow allowing users to switch between viewing Places, adding a new Place, and accessing the Random Pick feature
+- Dropdown interface visually integrated and intuitive for seamless user experience
+- View Places page displaying all places organized hierarchically by Country → City/Town/Village with clear visual grouping and distinct separation between each level
+- Required fields for place creation: Country and City/Town/Village (both mandatory)
+- Optional State/Region field that is not displayed in grouping headers if empty
+- Hierarchical place organization where places are grouped by Country → City/Town/Village, with State/Region stored but not shown in headers when empty
+- Clean hierarchical grouping logic that prevents awkward display issues like leading commas or incomplete location headers
+- Fully responsive hierarchical display that adapts gracefully to all screen sizes from small phones to ultrawide monitors while maintaining clear grouping structure
+- Places displayed within their hierarchical groups with all relevant information visible
+- Manual entry form to add places with enhanced Country input field, optional State/Region, mandatory City/Town/Village field, multiple Attraction/Place/Neighborhood entries field, and initial notes
+- Multiple Attraction/Place/Neighborhood entries support allowing users to add several attractions, places, or neighborhoods for a single location with proper categorization and display
+- Attraction/Place/Neighborhood entries displayed as categorized items in the Places view, not appended to Additional Notes
+- Updated "Add Place" form where all fields (except Tags and the multiple Attraction/Place/Neighborhood entries) use sentence case formatting and full whitespace support
+- Mobile-responsive Add Place modal that accounts for browser chrome and ensures all form fields and buttons remain accessible on mobile devices
+- Redesigned Add Place page with improved visual layout addressing all layout issues: no overlapping text, clear borders and section dividers, consistent padding and spacing for all elements, and restored visual clarity to all input fields and sections
+- Add Place page fully responsive and visually organized on all devices, with each section and field clearly separated and easy to interact with
+- Visual improvements to Add Place page focused on clarity and usability without altering existing functionality
+- Place editing available to users for their own places only
+- Place creation available to all authenticated users through manual entry
+- User ownership display showing who created each place
+- Edit and delete controls visible only on places created by the current user
+- Random Picker page displays places with full edit and delete functionality - users can edit and delete places directly from the Random Picker view using the same modal and functionality as in the View Places page for consistent UI/UX
+- Edit and delete icons on Random Picker page linking directly to the same modal and functionality as in View Places page, allowing users to modify or remove places from the random pick view with consistent interface
+- Comprehensive country input field supporting both dropdown selection and free typing with autocomplete suggestions covering all countries worldwide
+- Complete global country mapping system that recognizes all common abbreviations, alternate spellings, country codes, and alternate names for every country (e.g., "US", "U.S.", "USA", "States", "America" all map to "United States"; "UK", "Britain", "Great Britain" map to "United Kingdom"; "JAP" maps to "Japan")
+- Real-time autocomplete suggestions that display standardized country names as users type, ensuring consistent country entries throughout the application with comprehensive global coverage
+- Country input field that accepts various input formats while automatically standardizing to official country names for data consistency across all world countries
+- Integrated photo upload capability within Add/Edit Place panel with thumbnail preview carousel
+- Maximum file size limit of 20MB per image for all image uploads throughout the app, including add/edit place and gallery features
+- Relaxed file size constraints ensuring users can upload high-quality images up to 20MB without encountering stricter size limitations
+- Automatic image sizing and standardization system that processes uploaded images in the background to ensure consistent display across the app without requiring user cropping
+- Image upload interface that works seamlessly across all devices and screen sizes
+- User-friendly image upload process allowing users to upload photos in their entirety from any device
+- Drag-and-drop image reordering functionality within the photo gallery allowing users to set the display order of images for each place
+- Cover photo selection feature allowing users to mark one image as the "cover" photo which will be used as the main thumbnail in lists and carousels
+- Improved cover photo selection workflow that allows users to mark a new cover photo without automatically saving or closing the editing panel, enabling continued editing of all other fields before manually submitting
+- UI messaging that accurately reflects the improved cover photo workflow, indicating that users can select a cover photo and continue editing other fields without the panel closing or auto-saving
+- Clear success and error messages after adding places ("New Place Added", "Upload Failed", etc.)
+- Display country flags next to each country name where appropriate
+- Individual place delete functionality with confirmation dialog - delete icons on place cards must reliably remove places from the database after user confirmation (available only for places created by the current user)
+- Functional edit icons on place cards that properly open the edit form for the selected place, allowing users to modify place details (available only for places created by the current user)
+- Edit place dialog with mobile-optimized layout that accounts for browser chrome, ensuring the entire dialog is always fully visible and scrollable on all devices and screen sizes
+- Edit dialog implementation that prevents any buttons or content from being hidden behind browser UI elements and ensures all interactive elements are always accessible regardless of device or screen size
+- Modal dialog that adapts to both desktop and mobile with proper viewport-aware positioning and sizing, accounting for browser chrome and preventing any content from being cut off or unreachable
+- Visible, always-accessible vertical scrollbar in edit dialogs when content overflows, ensuring users can scroll through all fields and options easily on any device or screen size
+- "Delete All Places" button accessible through universal menu settings with confirmation dialog (admin-only)
+- Automatic text formatting system that applies consistent formatting to all user input fields upon saving or displaying, with differentiated formatting rules for different field types:
+  - Sentence-based fields ("Best Known For," "Hidden Gem," "Local Tip," "Additional Notes") automatically format to sentence case (capitalize first letter, rest lowercase, preserve punctuation and spacing)
+  - Tags field maintains title case conversion with proper handling of small words (e.g., "beach, adventure" becomes "Beach, Adventure")
+  - Multiple Attraction/Place/Neighborhood entries maintain title case formatting with proper handling of small words
+  - All other fields apply uniform casing and punctuation rules as appropriate
+- Text formatting applied both when adding and editing places to ensure professional, consistent appearance regardless of how users enter their data
+- Consistent formatting system that maintains existing functionality and user experience while improving visual consistency of input data
+- Normal spacebar functionality in all input fields (Best Known For, Hidden Gem, Local Tip, Additional Notes, etc.) allowing users to type spaces between words as expected while maintaining automatic formatting
+- Proper layout for all placards and dropdowns on the "Add Place" and "View Places" pages ensuring all fields (Best Known For, Notes, Tags, Dates, City Name, etc.) are neatly aligned, contained within their boxes, and do not overflow or stretch vertically for a clean, readable appearance on all devices
+- Responsive hierarchical grouping system that maintains clear visual organization and distinct level separation across all screen sizes and device orientations
+
+### Import System
+- Import functionality accessible through universal menu settings section (admin-only)
+- Fully functional "Import Places" button in hamburger menu that reliably opens the import modal with complete functionality
+- Import modal that opens correctly when triggered from the hamburger menu with proper overlay behavior and responsive design
+- Mobile-optimized import modal that accounts for browser chrome and ensures all content and buttons remain accessible on mobile devices
+- Layout-safe import modal using React portal rendered to document.body with viewport-aware overlay positioning
+- Body scroll lock while import modal is open to prevent background scrolling
+- Centered dialog using flex layout with modal panel using internal scrolling that adapts to mobile browser constraints
+- Esc key and overlay click to close modal functionality
+- Proper focus trap cycling between first and last tabbable elements, independent of parent layout
+- Import UI with Upload vs Paste modes for different input methods
+- File upload support for TXT and PDF formats with automatic rejection of DOCX files
+- Text paste area for direct text input as alternative to file upload
+- Strict FTIT (From, To, In, Tags) parsing system that processes structured place data
+- Error reporting system displaying failed block numbers when parsing encounters issues
+- Duplicate detection system that identifies existing places to prevent redundant entries
+- Select-to-import interface allowing users to choose which parsed places to import
+- Progress indicator with cancel functionality during import processing
+- Import modal independent of parent layout constraints ensuring consistent behavior across all screen sizes and mobile browsers
+- Comprehensive error handling and user feedback throughout the import process
+- Import success and failure messaging with detailed results summary
+- Integration with existing place management system ensuring imported places follow all existing validation and formatting rules
+- Imported places automatically integrated into hierarchical Country → City/Town/Village grouping structure
+
+### Activity Suggestions
+- Automated activity suggestions for each place based on assigned tags
+- Tag-based recommendations: Beach tags suggest water sports and relaxation activities, Adventure tags suggest hiking and outdoor activities, Historical tags suggest cultural tours and museum visits
+- Activity suggestions displayed within place details interface
+- Customizable activity categories that users can configure
+- Trip-specific activity suggestions in trip details modal based on places included in the trip and their combined tags
+
+### Export and Settings Menu
+- Export functions moved to universal menu settings section for cleaner main interface (admin-only)
+- Import functions integrated into universal menu settings section (admin-only)
+- Export places list as TXT file with structured data format maintaining hierarchical organization (admin-only)
+- Export places list as CSV file with structured data including all place information and hierarchical grouping data (admin-only)
+- Download functionality accessible directly from menu settings interface (admin-only)
+
+### Place Information and Media
+- Multiple status selection allowing places to have multiple statuses simultaneously (e.g., both "To Research" and "Want to Go")
+- Status options: "To Research," "Researched," "Want to Go," "Currently Planning," "Visited," "Would Return"
+- Multi-select status interface allowing users to choose multiple statuses per place with complete backend support for saving and displaying all selected statuses
+- Full multi-status functionality ensuring all selected statuses are properly saved, retrieved, and displayed for each place
+- Research status automatically updates to "Researched" when facts are added
+- Tags system (Beach, Adventure, Romantic, Budget-friendly, Historical, etc.) with automatic title case formatting
+- Budget estimate ranges per place
+- "Best time to visit" field using month or month-range picker interface with reliable tick box functionality on all devices, ensuring users can select and deselect months without issues
+- Month picker allowing users to select specific months or month ranges from calendar-style interface with fully functional touch interaction
+- Consistent data entry for seasonal information through standardized month selection
+- Quick facts template with fields: "Best known for," "Hidden gem," "Local tip"
+- Enhanced place details section displaying comprehensive information alongside existing place information
+- Integrated photo gallery system with upload capability in Add/Edit Place panel
+- Maximum file size limit of 20MB per image for all image uploads throughout the app
+- Automatic image sizing and standardization processing that ensures consistent display across the app without requiring user cropping
+- Image upload functionality that works seamlessly across all devices
+- User-friendly image upload process allowing users to upload photos in their entirety from any device
+- Photo thumbnails displayed as mini carousel in place editing interface with consistent display achieved through automatic sizing
+- Photo thumbnails visible on main Places page for each place with consistent display through automatic image standardization
+- Drag-and-drop reordering of images within the photo gallery to set display order
+- Cover photo selection allowing users to designate which image serves as the main thumbnail for lists and carousels
+- Cover photo display system that correctly applies automatic sizing and standardization when displaying the cover image
+- Modern lightbox modal popup for image viewing - clicking photo thumbnails opens images in contemporary modal overlay instead of new tabs
+- Mobile-optimized lightbox modal that accounts for browser chrome and ensures proper viewing experience on mobile devices
+- Contemporary carousel within lightbox modal for places with multiple images, allowing smooth browsing through all images
+- Functional "click to view" button that opens the image viewer for all places, including those with only one image, ensuring users can view single photos in full size
+- Reliable image upload functionality with clear success and error feedback
+- Basic NSFW image filter with filename and content checking to prevent inappropriate uploads
+- Rich text notes and facts section
+
+### User Activity Tracking
+- Comprehensive activity log tracking all user actions including adding, editing, and deleting places, all trip-related activities (creation, editing, deletion), and import operations
+- Complete activity logging for every update or change made anywhere in the application, including all Trip Planner operations and Import operations, ensuring no action goes unrecorded
+- Universal activity tracking system that captures and logs every modification, creation, or deletion across all features and sections of the application
+- User signup event tracking that records and displays new user registration in the activity feed immediately after account creation
+- Signup activity entries showing the user's signup name with partial principal ID when they join the application
+- Signup events visible to all users in the public activity log for transparency about new members joining the collaborative platform
+- Grouped activity timeline where actions by the same user are consolidated under a single entry with expandable dropdown to view individual activities
+- Activity grouping ordered by recency - when a user performs a new action, their entire group moves to the top of the activity log
+- New users joining the application are automatically shown in the public activity log with their signup event as their first activity
+- Activity Log displays signup names with partial principal IDs universally instead of full principal IDs when users have set their names
+- User name display in activity entries shows the signup name with partial principal ID that users provided when joining the application for clear identification
+- Activity Log is visible to all users with clear UI indication of its public accessibility
+- Transparency features displaying who made what changes and when using readable user names with partial principal IDs
+- Activity filtering by user, action type, and date range
+- Public activity feed showing recent collaborative contributions with user names and partial principal IDs
+- Individual user activity profiles showing personal contribution history
+- Expandable activity groups showing chronological list of individual actions when dropdown is opened
+- Trip activity tracking including trip creation, editing, and deletion actions logged and visible in the main activity feed
+- Import activity tracking including import operations, success/failure status, and number of places imported logged and visible in the main activity feed
+
+### Notifications System
+- Notifications panel integrated into universal hamburger menu accessible to all users
+- Customizable notification preferences for each user accessible through menu settings
+- Notification types: new places added, place edits, collaborative changes, trip-related activities, and import operations
+- User-configurable notification settings for different activity types within menu
+- In-app notification center displaying recent updates and changes through universal menu
+- Notification delivery preferences and frequency controls
+
+### Collaboration
+- Multi-user support with user management and name storage
+- User ownership system ensuring users can only edit and delete their own content (places)
+- Collaborative notes where users can add facts to places they created
+- Author attribution for all contributions with place creator identification
+- Notes history showing when facts were added and by whom
+- Activity tracking for transparency and collaboration oversight
+- Trip collaboration system allowing multiple users to view trips and authorized users to edit based on role permissions
+
+### Search and Filtering
+- Comprehensive search functionality that matches any relevant field of a place including tags, country (supporting both abbreviations and full names), state/region, city, attraction/place/neighborhood entries, "best known for", "hidden gem", "local tip", "best time to visit", and any keywords in the notes section
+- Enhanced search that ignores punctuation and syntax (apostrophes, commas, periods) and is fully case-insensitive, allowing users to find matches even if they omit or mistype punctuation
+- Country search and filtering enhanced with comprehensive global mapping system that recognizes all common abbreviations, alternate spellings, country codes, and alternate names for every country worldwide for consistent results
+- Search functionality that applies complete global country mapping logic to ensure users can find places using any country name format, abbreviation, or alternate name
+- Partial match support allowing users to find places by typing any associated word or phrase
+- Advanced filtering and sorting by name, country, research status, and keywords
+- Dropdown filters for country, visit status, and tags with standardized country names displayed consistently
+- Multi-status filtering supporting places with multiple simultaneous statuses
+- Global search functionality across all place data fields including multiple attraction/place/neighborhood entries
+- Search results maintaining hierarchical Country → City/Town/Village grouping structure for consistent organization
+- Filtering system that preserves hierarchical display organization while showing relevant results
+
+### Tools and Features
+- Random research picker accessible through integrated dropdown on Places page with full edit and delete functionality
+- Edit and delete icons on Random Picker page that link directly to the same modal and functionality as in View Places page for consistent UI/UX
+- Inspiration mode to browse random researched places
+- Progress indicator showing researched vs total places
+- Statistics dashboard: places by continent, most active researcher, completion percentage, and collaboration metrics
+- Clean print/export view for sharing with hierarchical organization maintained
+
+## Backend Data Storage
+The backend must store:
+- Comprehensive user registry with complete tracking of all users who have logged in or contributed to the application
+- User information with signup names and partial principal IDs for universal display across all user-facing areas instead of full principal IDs
+- Complete principal ID storage for all users who have ever accessed the application for reliable user tracking
+- User signup event data with timestamps for activity log display
+- Founder identification data ensuring permanent admin status
+- Real-time user registration data ensuring all new signups are immediately captured and stored
+- Complete user registry showing all users who have logged in with their signup names, partial principal IDs, and registration timestamps
+- User contribution tracking data to identify all users who have participated in the application
+- User statistics data for accurate counts of total users with real-time updates
+- Places with all associated metadata (location, multiple statuses as arrays, tags, budget, notes, images, multiple attraction/place/neighborhood entries) and user ownership information
+- User ownership data linking each place to its creator for access control
+- Place data organized by Country → City/Town/Village hierarchy for data integrity and hierarchical display
+- Required Country and City/Town/Village fields for all places with optional State/Region field
+- Multiple attraction/place/neighborhood entries stored as categorized data for proper display in Places view
+- Clean hierarchical grouping data ensuring places are properly organized by Country → City/Town/Village without awkward display issues
+- Comprehensive global country mapping database covering all countries worldwide with complete abbreviations, alternate spellings, country codes, and alternate names
+- Complete global country mapping system that links all possible input formats for every country to official standardized country names ensuring worldwide coverage
+- Complete multiple status arrays per place with proper data structure supporting full multi-status functionality and ensuring all selected statuses are saved and retrievable
+- Month or month-range data for "best time to visit" field with standardized format
+- Photo gallery data with thumbnail and carousel image selections integrated with place data
+- Image display order data for drag-and-drop reordering functionality
+- Cover photo designation data for each place indicating which image serves as the main thumbnail
+- Image file size limit configuration data set to 20MB maximum per image for all uploads throughout the app
+- Automatic image sizing and standardization configuration data ensuring consistent display across the app without requiring user cropping
+- Image metadata and NSFW filter results
+- Collaborative notes with author attribution and timestamps
+- Activity suggestions and tag-based recommendation data
+- Grouped user activity logs with detailed action tracking, timestamps, and user name with partial principal ID associations for proper display in grouped activity entries
+- Complete activity logging data for every update or change made anywhere in the application, including all Trip Planner operations and Import operations, ensuring comprehensive tracking of all user actions
+- Universal activity tracking data capturing every modification, creation, or deletion across all features and sections of the application
+- User signup activity records with timestamps for immediate display in activity feed after account creation
+- Activity grouping data to consolidate actions by the same user under single entries with expandable dropdown functionality
+- Activity recency tracking to ensure user groups move to top when new actions are performed
+- New user activity tracking to automatically show joining users in the public activity log with their signup event
+- Import activity logging data including import operations, success/failure status, number of places imported, and error details
+- Notification preferences and delivery settings for each user
+- Notification history and delivery status
+- Statistics and progress tracking data
+- Trip data including trip names, descriptions, creation timestamps, and creator information
+- Trip place associations linking selected places to trips with ordering information
+- Trip creator identification data showing who created each trip with signup names and partial principal IDs
+- Trip access control data managing permissions for editing and deletion based on creator and admin roles
+- Trip activity logs tracking creation, editing, and deletion actions for integration with main activity feed
+- Import processing data including parsed place information, validation results, and duplicate detection results
+- Import session data tracking upload/paste mode, file types, processing status, and user selections
+- FTIT parsing results with structured place data extraction and error reporting
+- Text formatting rules and configuration data for automatic formatting of user input fields with differentiated formatting rules:
+  - Sentence case formatting rules for sentence-based fields (Best Known For, Hidden Gem, Local Tip, Additional Notes)
+  - Title case formatting rules for Tags and multiple Attraction/Place/Neighborhood entries with proper small word handling
+  - Uniform casing and punctuation rules for all other relevant fields
+- Formatted text data ensuring consistent display of all user input fields with professional appearance and appropriate formatting based on field type regardless of original input format
+- Enhanced hierarchical display configuration data for Country → City/Town/Village grouping with responsive layout parameters and clean display logic
+
+## Backend Operations
+The backend must support:
+- Comprehensive user tracking operations that reliably capture and store all users who have logged in or contributed to the application
+- Real-time user registration tracking ensuring all new signups are immediately captured and stored in the backend
+- User data retrieval operations for displaying signup names with partial principal IDs
+- User signup name with partial principal ID storage and retrieval for universal display across all user-facing areas
+- Complete user registry operations providing all users who have ever logged in with their principal IDs, signup names, and registration data
+- User contribution tracking operations to identify and store all users who have participated in the application
+- User signup event recording operations that immediately create activity log entries when new users register
+- Signup activity entry creation with proper timestamp and user identification data for activity feed display
+- Founder identification and protection operations
+- User ownership validation for place operations ensuring users can only modify their own content
+- Access control enforcement for admin-only features ensuring only the founder can access administrative functions
+- Individual place deletion operations with reliable database removal after confirmation (restricted to place owners)
+- Individual place editing operations with reliable data updates that immediately reflect changes (restricted to place owners)
+- Bulk deletion of all places with complete data cleanup (admin-only)
+- Place data management operations for storing and retrieving places with hierarchical Country → City/Town/Village organization
+- Required field validation ensuring Country and City/Town/Village are mandatory for all places
+- Multiple attraction/place/neighborhood entries management with proper categorization and storage for display in Places view
+- Clean hierarchical grouping operations that organize places by Country → City/Town/Village without awkward display issues like leading commas
+- Place hierarchical data operations maintaining Country → City/Town/Village structure for data integrity
+- Comprehensive global country name standardization operations that convert any input format for any country worldwide to official country names using complete global mapping system
+- Global country mapping lookup operations that recognize all abbreviations, alternate spellings, country codes, and alternate names for every country worldwide for consistent data storage
+- Autocomplete suggestion generation for country input field based on comprehensive global mapping database and user input
+- Global country data validation ensuring all country entries are standardized regardless of input format for any country worldwide
+- Export file generation in TXT format with structured data maintaining hierarchical organization (admin-only)
+- Export file generation in CSV format with all place data including hierarchical grouping information (admin-only)
+- Import file processing operations supporting TXT and PDF formats with automatic DOCX rejection (admin-only)
+- Import text parsing operations using strict FTIT (From, To, In, Tags) format parsing with comprehensive error handling
+- Import duplicate detection operations comparing parsed places against existing database entries
+- Import validation operations ensuring all imported places meet existing data quality standards
+- Import batch processing operations with progress tracking and cancellation support
+- Import error reporting operations providing detailed feedback on failed parsing blocks with specific block numbers
+- Import success/failure logging operations for activity feed integration
+- Import integration operations that automatically organize imported places into hierarchical Country → City/Town/Village structure
+- Reliable image upload processing with NSFW filtering and validation
+- Image file size validation operations enforcing 20MB maximum limit per image for all uploads throughout the app
+- Automatic image sizing and standardization processing operations that ensure consistent display across the app without requiring user cropping
+- Image upload processing that works seamlessly across all devices
+- Image upload integration with place creation and editing workflows
+- Image reordering operations to save and update display order based on drag-and-drop changes
+- Cover photo designation operations to mark and update which image serves as the main thumbnail for each place
+- Improved cover photo selection operations that do not trigger automatic save and close of editing panels, allowing users to continue editing all other fields and only save when explicitly submitting
+- Image viewer operations that support opening the lightbox modal for all places, including those with only one image, ensuring users can view single photos in full size
+- Activity suggestion generation based on place tags and categories
+- Grouped user activity logging with detailed action tracking and user name with partial principal ID association for proper display in grouped activity entries
+- Complete activity logging operations for every update or change made anywhere in the application, including all Trip Planner operations and Import operations, ensuring comprehensive tracking of all user actions
+- Universal activity tracking operations that capture and log every modification, creation, or deletion across all features and sections of the application
+- User signup activity logging operations that immediately record and display new user registration events in the activity feed
+- Activity grouping operations to consolidate actions by the same user under single entries with expandable dropdown functionality
+- Activity recency management to move user groups to top when new actions are performed
+- New user activity tracking operations to automatically show joining users in the public activity log with their signup event as their first activity
+- Activity log user name resolution to display signup names with partial principal IDs universally instead of full principal-based labels
+- Import activity logging operations tracking import sessions, processing results, and integration with main activity feed
+- Notification system management including preference handling and delivery
+- Complete multiple status array management with full support for saving and retrieving all simultaneous status assignments per place
+- Month and month-range data processing for "best time to visit" field with reliable touch interaction support
+- Enhanced search operations across all place data fields with punctuation-insensitive and fully case-insensitive matching, including tags, country names and abbreviations, state/region, city, multiple attraction/place/neighborhood entries, quick facts fields, best time to visit, and notes content
+- Search operations enhanced with comprehensive global country mapping logic to ensure consistent results regardless of country name input format for any country worldwide
+- Search result operations that maintain hierarchical Country → City/Town/Village grouping structure for consistent organization
+- Multi-status filtering and search capabilities with complete multiple status array support
+- Filtering operations that preserve hierarchical display organization while showing relevant results
+- Success and error message generation for all operations
+- Trip creation operations with user ownership and creator identification
+- Trip editing operations allowing authorized users (founder/admin or trip creator) to modify trip details and included places
+- Trip deletion operations with confirmation support for authorized users (founder/admin or trip creator)
+- Bulk trip deletion operations for admin/founder with proper confirmation and complete data cleanup
+- Trip place association operations linking selected places to trips with ordering information
+- Trip details retrieval operations providing all places in trips with their order and key details
+- Trip activity suggestion generation based on combined tags of places included in trips
+- Trip creator identification operations storing and retrieving creator information with signup names and partial principal IDs
+- Role-based access control operations ensuring only authorized users can edit or delete trips
+- Trip activity logging operations for creation, editing, and deletion actions integrated with main activity feed
+- Random Picker operations that include full edit and delete functionality for places displayed in the Random Picker view
+- Edit and delete operations from Random Picker page that link directly to the same modal and functionality as in View Places page for consistent UI/UX
+- Automatic text formatting operations that apply consistent formatting to all user input fields upon saving or displaying, with differentiated formatting rules for different field types:
+  - Sentence case formatting operations for sentence-based fields (Best Known For, Hidden Gem, Local Tip, Additional Notes) that capitalize first letter, make rest lowercase, and preserve punctuation and spacing
+  - Title case formatting operations for Tags and multiple Attraction/Place/Neighborhood entries with proper handling of small words
+  - Uniform casing and punctuation rule application for all other relevant fields
+- Text formatting processing that maintains existing functionality while improving visual consistency of input data based on field type
+- Formatted text storage and retrieval operations ensuring consistent display of all user input fields with professional appearance and appropriate formatting based on field type
+- Enhanced hierarchical data organization operations ensuring all new features maintain Country → City/Town/Village grouping structure with clean display logic
+
+## Technical Requirements
+- Landing page with MapMates logo from "https://i.imgur.com/OmgQN1q.png" as the main centerpiece element at 40-50% of the original double size (reduced by 50-60% from the previous double size) for a more balanced and proportional appearance, replacing any previous branding elements, with responsive scaling and beautiful integration into the UI/UX design across all screen sizes
+- Landing page feature boxes with custom images:
+  - "Discover Places" box uses the image "https://i.imgur.com/RvjjNgw.gif" instead of emoji
+  - "Collaborate" box uses the image "https://i.imgur.com/otenCBb.gif" instead of emoji
+  - "Plan Adventures" box uses the image "https://i.imgur.com/aiNJ0Xd.gif" instead of emoji
+- Feature box images styled to fit cleanly and responsively within their boxes, maintaining a visually appealing and consistent layout across all devices
+- Enhanced dynamic color shift background implementation using CSS radial gradient that updates in real-time based on cursor position
+- Horizontal cursor position controlling hue (0–360°) and vertical position controlling lightness using HSL color space for smooth transitions
+- Improved cursor trail animation with enhanced focal point visibility through increased opacity and reduced blur/softness for better definition while maintaining soft, elegant edges and non-distracting appearance
+- Radial gradient emanating from cursor position with smooth, subtle transitions between color states
+- Background color system ensuring all text remains readable at all times with proper contrast
+- Dynamic background applied globally across all main pages and responsive across all devices
+- CSS animation implementation for enhanced dynamic background that performs smoothly on all devices without impacting application performance or usability
+- All non-landing pages display the same logo from "https://i.imgur.com/OmgQN1q.png" in the top left corner, positioned to the left of the 'Welcome [userName]' text, maintaining current size and making it clickable to navigate back to the main Places page
+- Clickable logo functionality on all non-landing pages that navigates users back to the main Places page when clicked
+- Clean top bar with clickable logo in top left, user greeting and logout button with clean appearance without any background graphics, gradients, or decorative elements
+- Responsive logo implementation that scales appropriately across all screen sizes and devices while maintaining visual appeal and proper alignment at the reduced size (40-50% of original double size) on landing page and standard size in top left corner on other pages
+- Logo integration system that replaces all previous branding elements throughout the application with the new MapMates logo
+- Universal hamburger menu implementation that overlays the navigation bar and appears at the forefront of the screen when opened, rather than expanding inside the nav and stretching it vertically
+- Hamburger menu options styled as clear, clickable buttons with proper left and right padding for professional appearance and usability
+- Hamburger menu with click-outside-to-close functionality and proper 'X' button for closing
+- Fully functional "Import Places" button implementation in hamburger menu that reliably opens the import modal with complete functionality and proper overlay behavior
+- Import modal trigger system that works correctly when activated from the hamburger menu with all expected features and responsive design
+- Navigation tab buttons ("Places", "Trip Planner", "Statistics", "Activity Log (All Users)") with sufficient horizontal padding, clear button styling, and visible separation, making them look and feel selectable and not crowded
+- Navigation tab styling ensuring all tab labels are fully visible and not cut off inside their buttons, with text fitting comfortably within the blue background on all screen sizes
+- All menu and navigation changes fully responsive and visually appealing across all devices and screen sizes
+- Hierarchical place display organized by Country → City/Town/Village with clear visual grouping and distinct separation between each level
+- Required field validation ensuring Country and City/Town/Village are mandatory for all place entries
+- Clean hierarchical grouping system that prevents awkward display issues like leading commas or incomplete location headers
+- Multiple attraction/place/neighborhood entries support with proper categorization and display in Places view, not appended to Additional Notes
+- Fully responsive hierarchical display system that adapts gracefully to all screen sizes from small phones to ultrawide monitors while maintaining clear grouping structure and visual organization
+- Places displayed within their hierarchical groups as individual entries with all relevant information visible
+- User ownership-based access control implementation with secure permission validation for places
+- Admin-only access enforcement for administrative features with founder access
+- Founder identification system ensuring permanent admin status
+- User ownership validation system ensuring users can only modify their own content (places)
+- Comprehensive user tracking system that reliably captures all users who have logged in or contributed
+- Real-time user registration detection ensuring new signups are immediately captured and displayed
+- Complete user registry functionality providing all users with their principal IDs, signup names, and registration timestamps
+- Live user statistics with accurate counts of total users
+- User signup event tracking system that immediately records and displays new user registration in activity feed
+- Fast search and filtering performance with enhanced punctuation-insensitive and case-insensitive field matching
+- Search results maintaining hierarchical Country → City/Town/Village grouping structure for consistent organization
+- Complete multi-status filtering and display capabilities with full multiple status array support ensuring all selected statuses are properly handled
+- Comprehensive global country input field with dropdown and autocomplete functionality supporting both selection and free typing for all countries worldwide
+- Complete global country mapping system with real-time autocomplete suggestions that standardize country entries for every country worldwide
+- Global country input validation and standardization ensuring consistent data storage regardless of input format for any country worldwide
+- Month picker interface with calendar-style selection for "best time to visit" field with reliable tick box functionality on all devices, ensuring users can select and deselect months without issues
+- Touch-responsive month picker with fully functional interaction ensuring reliable selection and deselection of months on all devices
+- Persistent data storage for places with proper data management and hierarchical organization
+- Reliable image processing and gallery management with clear upload feedback
+- Image file size validation system enforcing 20MB maximum limit per image for all uploads throughout the app
+- Automatic image sizing and standardization system that processes uploaded images in the background to ensure consistent display across the app without requiring user cropping
+- Image upload interface that works seamlessly across all devices and screen sizes
+- User-friendly image upload process allowing users to upload photos in their entirety from any device
+- Integrated photo upload within place editing interface
+- Drag-and-drop functionality for image reordering within photo galleries
+- Improved cover photo selection interface that allows users to designate main thumbnails without automatically saving or closing the editing panel, enabling continued editing of all fields
+- Enhanced editing workflow that prevents automatic save and close when selecting cover photos during place editing, allowing users to continue editing all other fields and only save when they explicitly submit
+- UI messaging that accurately reflects the improved cover photo selection workflow, indicating users can select cover photos and continue editing without the panel closing or auto-saving
+- Mobile-optimized modal dialog system that accounts for browser chrome (top and bottom bars) ensuring all interactive elements remain fully visible and accessible on mobile browsers
+- Modal positioning system that prevents dialogs from extending behind browser UI elements on any device or orientation, with viewport-aware positioning
+- Responsive modal layout that adapts to viewport constraints while maintaining full accessibility of all buttons and controls on both small and large screens
+- Edit place dialog implementation with mobile-responsive layout using internal scrolling ensuring the entire dialog is always fully visible and scrollable on all devices and screen sizes
+- Edit dialog system that prevents any buttons or content from being hidden behind browser UI elements and ensures all interactive elements are always accessible regardless of device or screen size
+- Modal dialog implementation that adapts to both desktop and mobile with proper viewport-aware positioning and sizing, accounting for browser chrome and preventing any content from being cut off or unreachable
+- Visible, always-accessible vertical scrollbar implementation in all edit dialogs and windows for places when content overflows, ensuring users can scroll through all fields and options easily on any device or screen size
+- Modern lightbox modal functionality for image viewing with contemporary carousel support for multiple images
+- Mobile-optimized lightbox modal that accounts for browser chrome and ensures proper viewing experience on mobile devices
+- Functional "click to view" button implementation that opens the image viewer for all places, including those with only one image, ensuring users can view single photos in full size
+- Basic NSFW content filtering system
+- Layout-safe import modal implementation using React portal rendered to document.body with viewport-aware overlay positioning
+- Mobile-responsive import modal that accounts for browser chrome and ensures all content and buttons remain accessible on mobile devices
+- Import modal that opens correctly and functions properly when triggered from the hamburger menu "Import Places" button
+- Reliable import modal trigger system ensuring the modal opens with complete functionality and proper overlay behavior when accessed through the hamburger menu
+- Body scroll lock functionality while import modal is open to prevent background scrolling
+- Centered dialog layout using flex with modal panel using internal scrolling that adapts to mobile browser constraints
+- Esc key and overlay click to close modal functionality
+- Proper focus trap implementation cycling between first and last tabbable elements, independent of parent layout
+- Import UI with Upload vs Paste modes for different input methods
+- File upload support for TXT and PDF formats with automatic DOCX rejection
+- Text paste area for direct text input as alternative to file upload
+- Strict FTIT (From, To, In, Tags) parsing system processing structured place data
+- Error reporting system displaying failed block numbers when parsing encounters issues
+- Duplicate detection system identifying existing places to prevent redundant entries
+- Select-to-import interface allowing users to choose which parsed places to import
+- Progress indicator with cancel functionality during import processing
+- Import modal independence from parent layout constraints ensuring consistent behavior across all screen sizes and mobile browsers
+- Comprehensive error handling and user feedback throughout the import process
+- Import success and failure messaging with detailed results summary
+- Import system integration with existing place management system ensuring imported places follow all validation and formatting rules
+- Import system integration with hierarchical Country → City/Town/Village organization ensuring imported places are properly grouped
+- Grouped activity tracking and logging system with expandable dropdown functionality for individual actions
+- Complete activity logging system for every update or change made anywhere in the application, including all Trip Planner operations and Import operations, ensuring comprehensive tracking of all user actions
+- Universal activity tracking implementation that captures and logs every modification, creation, or deletion across all features and sections of the application
+- Activity grouping interface that consolidates actions by the same user under single entries ordered by recency
+- Activity recency management ensuring user groups move to top when new actions are performed
+- New user activity display automatically showing joining users in the public activity log with their signup event
+- Signup event tracking functionality that immediately creates activity log entries when users register
+- Activity log user name resolution system to show signup names with partial principal IDs universally instead of generic principal-based labels across all user-facing areas
+- Import activity logging integration with main activity feed system
+- Customizable notification system with user preference management
+- Activity suggestion engine based on place tags and categories
+- Comprehensive success and error messaging system for all operations
+- Intuitive user interface with universal hamburger menu organization
+- Confirmation dialogs for all delete operations
+- Multi-select status interface for simultaneous status selection with complete backend support for all selected statuses stored as arrays
+- Month picker component for consistent seasonal data entry with reliable touch interaction
+- Clean top bar interface showing clickable logo, essential elements for all users with new MapMates logo integration
+- Universal hamburger menu accessible to all users with full content visibility on all screen sizes and orientations
+- Integrated dropdown interface on Places page for seamless feature switching
+- Automatic image sizing and standardization functionality ensuring consistent display across the app without requiring user cropping
+- Universal signup name with partial principal ID display system ensuring signup names with partial principal IDs are shown instead of full principal IDs across all user-facing areas including activity logs, statistics, user lists, and any other interface elements showing user information
+- Functional place delete and edit icons that reliably perform their intended operations - delete icons must successfully remove places after confirmation (restricted to place owners), and edit icons must properly open the edit form for the selected place (restricted to place owners)
+- User ownership display system showing who created each place
+- Access control system ensuring edit and delete controls are only visible on content created by the current user (except for founder/admin privileges)
+- Admin feature visibility system ensuring administrative functions are only visible to the founder
+- Trip planner interface ensuring all features work on desktop and mobile with mobile-optimized modals
+- Trip creation form with place selection from user's places list
+- Trip editing interface allowing authorized users to modify trip details and included places
+- Trip deletion functionality with confirmation dialogs for authorized users
+- Trip details modal displaying all places with order and key details, with mobile-responsive design that accounts for browser chrome
+- Trip activity suggestion system based on combined tags of included places
+- Role-based access control for trip operations ensuring only authorized users can edit or delete
+- Trip activity logging integration with main activity feed system
+- Random Picker interface that displays places with full edit and delete functionality, allowing users to edit and delete places directly from the Random Picker view using the same modal and functionality as in the View Places page for consistent UI/UX
+- Edit and delete icons on Random Picker page that link directly to the same modal and functionality as in View Places page, allowing users to modify or remove places from the random pick view with consistent interface
+- Universal overlay close functionality allowing users to close all popup and modal components by clicking anywhere on the overlay background (not just the "X" button), including image viewers, menu, trip details modals, import modal, confirmation dialogs, and all other modal components
+- Popup system ensuring all popups (including Trip Details, Image Lightbox, Import Modal, Add Place, and all other modal components) are always centered, properly sized for readability on all screens, with proper scrolling capabilities and no content cut off
+- Mobile-optimized popup system that accounts for browser chrome and ensures all interactive elements remain accessible on mobile devices
+- Popup focus system making popups the primary focus when open with click-outside-to-close functionality and always visible, accessible close buttons
+- Comprehensive modal and popup component system ensuring all modals, overlays, and popups open, display, and function correctly on all devices with proper visibility, scrolling capabilities, and touch interaction support
+- Updated "Add Place" form implementation where all fields (except Tags and multiple Attraction/Place/Neighborhood entries) use sentence case formatting and full whitespace support
+- Mobile-responsive Add Place form that accounts for browser chrome and ensures all form fields and buttons remain accessible on mobile devices
+- Redesigned Add Place page with improved visual layout addressing all layout issues: no overlapping text, clear borders and section dividers, consistent padding and spacing for all elements, and restored visual clarity to all input fields and sections
+- Add Place page fully responsive and visually organized on all devices, with each section and field clearly separated and easy to interact with
+- Visual improvements to Add Place page focused on clarity and usability without altering existing functionality
+- Multiple attraction/place/neighborhood entries field implementation allowing users to add several entries with proper categorization for display in Places view
+- Automatic text formatting system that applies consistent formatting to all user input fields upon saving or displaying, with differentiated formatting rules for different field types:
+  - Sentence case formatting for sentence-based fields (Best Known For, Hidden Gem, Local Tip, Additional Notes) that capitalizes first letter, makes rest lowercase, and preserves punctuation and spacing
+  - Title case formatting for Tags and multiple Attraction/Place/Neighborhood entries with proper handling of small words
+  - Uniform casing and punctuation rules for all other relevant fields
+- Text formatting implementation that maintains existing functionality and user experience while improving visual consistency of input data based on field type
+- Consistent formatting system applied both when adding and editing places to ensure professional appearance regardless of original user input format
+- Normal spacebar functionality implementation in all input fields (Best Known For, Hidden Gem, Local Tip, Additional Notes, etc.) allowing users to type spaces between words as expected while maintaining automatic formatting based on field type
+- Proper layout implementation for all placards and dropdowns on the "Add Place" and "View Places" pages ensuring all fields (Best Known For, Notes, Tags, Dates, City Name, etc.) are neatly aligned, contained within their boxes, and do not overflow or stretch vertically for a clean, readable appearance on all devices
+- Enhanced hierarchical grouping system implementation ensuring all new features and UI changes maintain Country → City/Town/Village structure with clean display logic
+- Responsive design system that ensures hierarchical grouping adapts gracefully to all screen sizes from small phones to ultrawide monitors while maintaining clear level distinctions and visual separation
+- Application content in English
