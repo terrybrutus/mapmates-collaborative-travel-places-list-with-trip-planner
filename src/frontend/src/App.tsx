@@ -160,7 +160,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-md rounded-2xl shadow-2xl p-6 backdrop-blur-xl"
+        className="relative w-full max-w-md rounded-2xl shadow-2xl p-5 sm:p-6 backdrop-blur-xl overflow-y-auto max-h-[90dvh]"
         style={{
           background: "rgba(15, 23, 42, 0.97)",
           border: "1px solid rgba(255,255,255,0.1)",
