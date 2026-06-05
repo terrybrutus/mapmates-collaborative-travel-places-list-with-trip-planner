@@ -1,7 +1,7 @@
 {
   "canisters": {
     "backend": {
-      "main": "src/backend_extended/main.mo",
+      "main": "src/backend/main.mo",
       "type": "motoko",
       "args": "--default-persistent-actors -no-check-ir"
     },
