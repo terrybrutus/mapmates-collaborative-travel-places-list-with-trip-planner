@@ -1,0 +1,119 @@
+// Version: 1.0.0
+type ActivityEntry__757604646 =
+  {action : Text; timestamp : Time__38388344; user : Principal};
+type BudgetRange__430128818 = {#high; #low; #medium};
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type FileReference__615446570 = {hash : Text; path : Text};
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type List__415060402<T> = List__790383201<T>;
+type List__790383201<T> =
+  {
+    var blockIndex : Nat__490723111;
+    var blocks : [var [var ?T]];
+    var elementIndex : Nat__490723111
+  };
+type Map__158565046<K, V> = Map__297112838<K, V>;
+type Map__297112838<K, V> =
+  {var root : Node__46230540<K, V>; var size : Nat__490723111};
+type Map__605269027<K, V> = Map__158565046<K, V>;
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type Note__74666102 =
+  {
+    author : Principal;
+    content : Text;
+    placeId : Text;
+    timestamp : Time__38388344
+  };
+type PasswordResetRecord__22326892 =
+  {expiresAt : Time__38388344; username : Text};
+type PlaceStatus__688500539 =
+  {#planning; #researched; #toResearch; #visited; #wantToGo; #wouldReturn};
+type Place__428063104 =
+  {
+    attractions : [Text];
+    author : Principal;
+    bestTimeToVisit : Text;
+    budgetRange : BudgetRange__430128818;
+    city : Text;
+    country : Text;
+    id : Text;
+    images : [Text];
+    notes : Text;
+    quickFacts : QuickFacts__468069212;
+    stateRegion : Text;
+    status : [PlaceStatus__688500539];
+    tags : [Text];
+    timestamp : Time__38388344
+  };
+type QuickFacts__468069212 =
+  {bestKnownFor : Text; hiddenGem : Text; localTip : Text};
+type SessionRecord__1009008948 =
+  {expiresAt : Time__38388344; username : Text};
+type Time__38388344 = Int;
+type UserProfile__491224006 = {name : Text};
+type UserRecord__235003723 =
+  {
+    createdAt : Time__38388344;
+    displayName : Text;
+    email : Text;
+    isAdmin : Bool;
+    isEmailVerified : Bool;
+    passwordHash : Text;
+    username : Text
+  };
+type UserRole__521596351 = {#admin; #guest; #user};
+actor {
+  stable accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__605269027<Principal, UserRole__521596351>
+    };
+  stable activityLogState :
+    {entries : List__415060402<ActivityEntry__757604646>};
+  stable authSessions :
+    {
+      var root : Node__46230540<Text, SessionRecord__1009008948>;
+      var size : Nat__490723111
+    };
+  stable authUsers :
+    {
+      var root : Node__46230540<Text, UserRecord__235003723>;
+      var size : Nat__490723111
+    };
+  stable emailVerifications :
+    {var root : Node__46230540<Text, Text>; var size : Nat__490723111};
+  stable var founderRegistered : Bool;
+  stable var landingPagePosterPath : ?Text;
+  stable var landingPageVideoPath : ?Text;
+  stable notes :
+    {
+      var root : Node__46230540<Text, Note__74666102>;
+      var size : Nat__490723111
+    };
+  stable passwordResets :
+    {
+      var root : Node__46230540<Text, PasswordResetRecord__22326892>;
+      var size : Nat__490723111
+    };
+  stable places :
+    {
+      var root : Node__46230540<Text, Place__428063104>;
+      var size : Nat__490723111
+    };
+  stable registry :
+    {references : Map__605269027<Text, FileReference__615446570>};
+  stable resetDuration : Int;
+  stable sessionDuration : Int;
+  stable var tokenNonce : Nat;
+  stable userProfiles :
+    {
+      var root : Node__46230540<Principal, UserProfile__491224006>;
+      var size : Nat__490723111
+    }
+};

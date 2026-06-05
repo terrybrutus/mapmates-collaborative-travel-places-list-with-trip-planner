@@ -1,0 +1,171 @@
+type http_request_result = 
+ record {
+   body: blob;
+   headers: vec http_header;
+   status: nat;
+ };
+type http_header = 
+ record {
+   name: text;
+   value: text;
+ };
+type UserRole = 
+ variant {
+   admin;
+   guest;
+   user;
+ };
+type UserProfile = record {name: text;};
+type TransformationOutput = 
+ record {
+   body: blob;
+   headers: vec http_header;
+   status: nat;
+ };
+type TransformationInput = 
+ record {
+   context: blob;
+   response: http_request_result;
+ };
+type Time = int;
+type QuickFacts = 
+ record {
+   bestKnownFor: text;
+   hiddenGem: text;
+   localTip: text;
+ };
+type PlaceStatus = 
+ variant {
+   planning;
+   researched;
+   toResearch;
+   visited;
+   wantToGo;
+   wouldReturn;
+ };
+type Place = 
+ record {
+   attractions: vec text;
+   author: principal;
+   bestTimeToVisit: text;
+   budgetRange: BudgetRange;
+   city: text;
+   country: text;
+   id: text;
+   images: vec text;
+   notes: text;
+   quickFacts: QuickFacts;
+   stateRegion: text;
+   status: vec PlaceStatus;
+   tags: vec text;
+   timestamp: Time;
+ };
+type Note = 
+ record {
+   author: principal;
+   content: text;
+   placeId: text;
+   timestamp: Time;
+ };
+type FileReference = 
+ record {
+   hash: text;
+   path: text;
+ };
+type BudgetRange = 
+ variant {
+   high;
+   low;
+   medium;
+ };
+type ActivityEntry = 
+ record {
+   action: text;
+   timestamp: Time;
+   user: principal;
+ };
+service : {
+  addNote: (note: Note) -> ();
+  addPlace: (place: Place) -> ();
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  autocomplete: (input: text) -> (text);
+  deleteAllPlaces: () -> ();
+  deletePlace: (id: text) -> ();
+  dropFileReference: (path: text) -> ();
+  filterPlacesByCountry: (country: text) -> (vec Place) query;
+  findPlaceFromText: (input: text) -> (text);
+  forgotPassword: (email: text) -> (variant {
+                                      err: text;
+                                      ok: text;
+                                    });
+  getActivityLog: () -> (vec ActivityEntry) query;
+  getAllPlaces: () -> (vec Place) query;
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  getCallerUserRole: () -> (UserRole) query;
+  getFileReference: (path: text) -> (FileReference) query;
+  getLandingPageVideo: () ->
+   (opt record {
+          posterPath: opt text;
+          videoPath: text;
+        }) query;
+  getNotesForPlace: (placeId: text) -> (vec Note) query;
+  getPlace: (id: text) -> (opt Place) query;
+  getPlaceDetails: (placeId: text) -> (text);
+  getRandomToResearchPlace: () -> (opt Place) query;
+  getStats: () ->
+   (record {
+      researchedPlaces: nat;
+      toResearchPlaces: nat;
+      totalPlaces: nat;
+    }) query;
+  getUserProfile: (user: principal) -> (opt UserProfile) query;
+  initializeAccessControl: () -> ();
+  isCallerAdmin: () -> (bool) query;
+  listFileReferences: () -> (vec FileReference) query;
+  logUserSignup: () -> ();
+  loginUser: (username: text, password: text) ->
+   (variant {
+      err: text;
+      ok: record {
+            displayName: text;
+            isAdmin: bool;
+            sessionToken: text;
+          };
+    });
+  logoutUser: (sessionToken: text) -> (variant {
+                                         err: text;
+                                         ok: text;
+                                       });
+  nearbySearch: (lat: float64, lon: float64) -> (text);
+  queryAutocomplete: (input: text) -> (text);
+  register: (username: text, password: text, email: text, displayName:
+   text) -> (variant {
+               err: text;
+               ok: text;
+             });
+  registerFileReference: (path: text, hash: text) -> ();
+  resetPassword: (token: text, newPassword: text) ->
+   (variant {
+      err: text;
+      ok: text;
+    });
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+  searchPlaces: (term: text) -> (vec Place) query;
+  setLandingPageVideo: (videoPath: text, posterPath: opt text) -> ();
+  textSearch: (searchQuery: text) -> (text);
+  transform: (input: TransformationInput) -> (TransformationOutput) query;
+  updatePlace: (place: Place) -> ();
+  validateSession: (sessionToken: text) ->
+   (variant {
+      err: text;
+      ok: record {
+            displayName: text;
+            isAdmin: bool;
+            username: text;
+          };
+    }) query;
+  verifyEmail: (token: text) -> (variant {
+                                   err: text;
+                                   ok: text;
+                                 });
+}
