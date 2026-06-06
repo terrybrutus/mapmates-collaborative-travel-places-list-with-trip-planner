@@ -530,16 +530,28 @@ export default function PlacesList() {
 
             {/* Hierarchical Places List */}
             {Object.keys(hierarchicalPlaces).length === 0 ? (
-              <div className="text-center py-12">
-                <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <div className="text-center py-16">
+                <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {searchTerm.trim() ? "No places found" : "No places yet"}
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-500 max-w-sm mx-auto mb-6">
                   {searchTerm.trim()
-                    ? `No places match "${searchTerm}". Try different keywords - search supports country abbreviations and various spellings.`
-                    : "Add some places to get started!"}
+                    ? `No places match "${searchTerm}". Try different keywords.`
+                    : canEdit
+                      ? "Start building your travel list! Add your first place to begin tracking where you want to go, where you've been, and everything in between."
+                      : "No places have been added yet."}
                 </p>
+                {!searchTerm.trim() && canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("add")}
+                    className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Your First Place</span>
+                  </button>
+                )}
                 {searchTerm.trim() && (
                   <button
                     type="button"

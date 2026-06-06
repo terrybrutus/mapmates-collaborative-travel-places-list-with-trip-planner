@@ -1,11 +1,10 @@
-import Principal "mo:core/Principal";
 import Time "mo:base/Time";
 import Text "mo:core/Text";
 import List "mo:core/List";
 
 module {
     public type ActivityEntry = {
-        user : Principal;
+        username : Text;
         action : Text;
         timestamp : Time.Time;
     };
@@ -18,10 +17,10 @@ module {
         { entries = List.empty<ActivityEntry>() };
     };
 
-    public func logSignup(state : ActivityLogState, user : Principal) {
+    public func logActivity(state : ActivityLogState, username : Text, action : Text) {
         let entry : ActivityEntry = {
-            user = user;
-            action = "User signed up";
+            username;
+            action;
             timestamp = Time.now();
         };
         state.entries.add(entry);

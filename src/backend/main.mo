@@ -67,6 +67,16 @@ actor {
         name : Text;
     };
 
+    public type Trip = {
+        id : Text;
+        name : Text;
+        description : Text;
+        placeIds : [Text];
+        authorUsername : Text;
+        authorName : Text;
+        timestamp : Time.Time;
+    };
+
     // ── Auth Types ──────────────────────────────────────────────────────────
     public type UserRecord = {
         username : Text;
@@ -93,6 +103,7 @@ actor {
     let places = Map.empty<Text, Place>();
     let notes = Map.empty<Text, Note>();
     let userProfiles = Map.empty<Principal, UserProfile>();
+    let trips = Map.empty<Text, Trip>();
     let activityLogState = ActivityLog.new();
     let registry = Registry.new();
 
@@ -160,16 +171,34 @@ actor {
         Time.now() < record.expiresAt;
     };
 
-    // Send email via HTTP outcall (best-effort; errors are swallowed)
-    func sendEmail(toEmail : Text, subject : Text, body : Text) : async () {
+    // Send email via Caffeine's managed email infrastructure → Amazon SES.
+    // The HTTP outcall is coordinated across IC replica nodes.
+    // Project identity is established by the canister principal (implicit in the subnet call).
+    func sendEmail(toEmail : Text, subject : Text, htmlBody : Text) : async () {
         let url = "https://api.caffeine.ai/v1/email/send";
-        let jsonBody = "{\"to\":\"" # toEmail # "\",\"subject\":\"" # subject # "\",\"body\":\"" # body # "\"}";
+        let escapedTo = toEmail;
+        let escapedSubject = subject;
+        let escapedBody = htmlBody;
+        let jsonBody = "{"
+            # "\"to\":\"" # escapedTo # "\","
+            # "\"subject\":\"" # escapedSubject # "\","
+            # "\"html\":\"" # escapedBody # "\","
+            # "\"project_id\":\"" # "my-app" # "\""
+            # "}";
         ignore await OutCall.httpPostRequest(
             url,
-            [{ name = "Content-Type"; value = "application/json" }],
+            [
+                { name = "Content-Type"; value = "application/json" },
+                { name = "X-Caffeine-Project"; value = "my-app" },
+            ],
             jsonBody,
             transform,
         );
+    };
+
+    // Build the app's base URL for email links
+    func appBaseUrl() : Text {
+        "https://my-app.caffeine.xyz";
     };
 
     // ── Auth Public Methods ─────────────────────────────────────────────────
@@ -221,19 +250,30 @@ actor {
 
         authUsers.add(lowerUsername, newUser);
 
+        ActivityLog.logActivity(activityLogState, lowerUsername, "Signed up");
+
         if (emailVerificationRequired) {
             emailVerifications.add(verificationToken, lowerUsername);
+            let verifyLink = appBaseUrl() # "/verify?token=" # verificationToken;
             ignore sendEmail(
                 email,
                 "Verify your MapMates account",
-                "Hi " # displayName # "! Your MapMates verification code is: " # verificationToken # ". Enter it in the app to activate your account.",
+                "Hi " # displayName # "!<br><br>"
+                # "Click the link below to verify your MapMates account:<br><br>"
+                # "<a href=\\\"" # verifyLink # "\\\">Verify my account</a><br><br>"
+                # "Or paste this link in your browser:<br>" # verifyLink # "<br><br>"
+                # "This link does not expire.<br><br>"
+                # "— The MapMates team",
             );
             #ok("VERIFY:" # verificationToken);
         } else {
             ignore sendEmail(
                 email,
                 "Welcome to MapMates!",
-                "Hi " # displayName # ", your MapMates account is ready. Sign in now!",
+                "Hi " # displayName # "!<br><br>"
+                # "Your MapMates account is ready. "
+                # "<a href=\\\"" # appBaseUrl() # "\\\">Sign in now</a>.<br><br>"
+                # "— The MapMates team",
             );
             #ok("Registration successful. You can now sign in.");
         };
@@ -376,10 +416,15 @@ actor {
                 };
                 let token = generateToken(lowerUsername # user.email # "resend");
                 emailVerifications.add(token, lowerUsername);
+                let verifyLink = appBaseUrl() # "/verify?token=" # token;
                 ignore sendEmail(
                     user.email,
-                    "Your MapMates verification code",
-                    "Hi " # user.displayName # "! Your verification code is: " # token,
+                    "Your MapMates verification link",
+                    "Hi " # user.displayName # "!<br><br>"
+                    # "Here is your new verification link:<br><br>"
+                    # "<a href=\\\"" # verifyLink # "\\\">Verify my account</a><br><br>"
+                    # "Or paste this link in your browser:<br>" # verifyLink # "<br><br>"
+                    # "— The MapMates team",
                 );
                 #ok("VERIFY:" # token);
             };
@@ -422,10 +467,29 @@ actor {
     };
 
     // Admin: list all users with their verification status
-    public query func listUsers() : async [{ username : Text; displayName : Text; email : Text; isEmailVerified : Bool; isAdmin : Bool }] {
-        authUsers.values().map(func(u) {
-            { username = u.username; displayName = u.displayName; email = u.email; isEmailVerified = u.isEmailVerified; isAdmin = u.isAdmin }
-        }).toArray();
+    public shared func listUsers(
+        sessionToken : Text,
+    ) : async { #ok : [{ username : Text; displayName : Text; email : Text; isEmailVerified : Bool; isAdmin : Bool }]; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (authUsers.get(session.username)) {
+                    case null { #err("User not found") };
+                    case (?user) {
+                        if (not user.isAdmin) {
+                            return #err("Unauthorized: admin only");
+                        };
+                        let result = authUsers.values().map(func(u) {
+                            { username = u.username; displayName = u.displayName; email = u.email; isEmailVerified = u.isEmailVerified; isAdmin = u.isAdmin }
+                        }).toArray();
+                        #ok(result);
+                    };
+                };
+            };
+        };
     };
 
     public shared func logoutUser(sessionToken : Text) : async { #ok : Text; #err : Text } {
@@ -434,6 +498,153 @@ actor {
             case (?_) {
                 authSessions.remove(sessionToken);
                 #ok("Logged out successfully");
+            };
+        };
+    };
+
+    // ── Trip Management ─────────────────────────────────────────────────────
+    public shared func addTrip(
+        sessionToken : Text,
+        name : Text,
+        description : Text,
+        placeIds : [Text],
+    ) : async { #ok : Trip; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (authUsers.get(session.username)) {
+                    case null { #err("User not found") };
+                    case (?user) {
+                        let tripId = generateToken("trip_" # session.username);
+                        let trip : Trip = {
+                            id = tripId;
+                            name;
+                            description;
+                            placeIds;
+                            authorUsername = session.username;
+                            authorName = user.displayName;
+                            timestamp = Time.now();
+                        };
+                        trips.add(tripId, trip);
+                        ActivityLog.logActivity(activityLogState, session.username, "Created trip: " # name);
+                        #ok(trip);
+                    };
+                };
+            };
+        };
+    };
+
+    public query func getTrips() : async [Trip] {
+        trips.values().toArray();
+    };
+
+    public query func getUserTrips(username : Text) : async [Trip] {
+        let lowerUsername = username.toLower();
+        trips.values().filter(func(t) { t.authorUsername == lowerUsername }).toArray();
+    };
+
+    public shared func updateTrip(
+        sessionToken : Text,
+        tripId : Text,
+        name : Text,
+        description : Text,
+        placeIds : [Text],
+    ) : async { #ok : Trip; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (trips.get(tripId)) {
+                    case null { #err("Trip not found") };
+                    case (?trip) {
+                        switch (authUsers.get(session.username)) {
+                            case null { #err("User not found") };
+                            case (?user) {
+                                if (trip.authorUsername != session.username and not user.isAdmin) {
+                                    return #err("Unauthorized");
+                                };
+                                let updated : Trip = { trip with name; description; placeIds };
+                                trips.add(tripId, updated);
+                                #ok(updated);
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+
+    public shared func deleteTrip(
+        sessionToken : Text,
+        tripId : Text,
+    ) : async { #ok : Text; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (trips.get(tripId)) {
+                    case null { #err("Trip not found") };
+                    case (?trip) {
+                        switch (authUsers.get(session.username)) {
+                            case null { #err("User not found") };
+                            case (?user) {
+                                if (trip.authorUsername != session.username and not user.isAdmin) {
+                                    return #err("Unauthorized");
+                                };
+                                trips.remove(tripId);
+                                ActivityLog.logActivity(activityLogState, session.username, "Deleted trip: " # trip.name);
+                                #ok("Trip deleted");
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+
+    public shared func deleteAllTrips(
+        sessionToken : Text,
+    ) : async { #ok : Text; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (authUsers.get(session.username)) {
+                    case null { #err("User not found") };
+                    case (?user) {
+                        if (not user.isAdmin) {
+                            return #err("Only admins can delete all trips");
+                        };
+                        trips.clear();
+                        #ok("All trips deleted");
+                    };
+                };
+            };
+        };
+    };
+
+    // Log a user action from the frontend (session-token based)
+    public shared func logUserActivity(
+        sessionToken : Text,
+        action : Text,
+    ) : async { #ok : Text; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                ActivityLog.logActivity(activityLogState, session.username, action);
+                #ok("Logged");
             };
         };
     };
@@ -540,10 +751,6 @@ actor {
         ActivityLog.getLog(activityLogState);
     };
 
-    public shared ({ caller }) func logUserSignup() : async () {
-        ActivityLog.logSignup(activityLogState, caller);
-    };
-
     // ── Filtering and Search ─────────────────────────────────────────────────
     public query func filterPlacesByCountry(country : Text) : async [Place] {
         let allPlaces = places.values().toArray();
@@ -590,6 +797,11 @@ actor {
         totalPlaces : Nat;
         researchedPlaces : Nat;
         toResearchPlaces : Nat;
+        visitedPlaces : Nat;
+        planningPlaces : Nat;
+        wantToGoPlaces : Nat;
+        totalCountries : Nat;
+        totalTrips : Nat;
     } {
         let allPlaces = places.values().toArray();
         let researched = allPlaces.filter(func(p) {
@@ -598,10 +810,28 @@ actor {
         let toResearch = allPlaces.filter(func(p) {
             p.status.any<PlaceStatus>(func(s) { s == #toResearch });
         });
+        let visited = allPlaces.filter(func(p) {
+            p.status.any<PlaceStatus>(func(s) { s == #visited or s == #wouldReturn });
+        });
+        let planning = allPlaces.filter(func(p) {
+            p.status.any<PlaceStatus>(func(s) { s == #planning });
+        });
+        let wantToGo = allPlaces.filter(func(p) {
+            p.status.any<PlaceStatus>(func(s) { s == #wantToGo });
+        });
+        let uniqueCountries = Map.empty<Text, Bool>();
+        for (p in allPlaces.values()) {
+            uniqueCountries.add(p.country.toLower(), true);
+        };
         {
             totalPlaces = allPlaces.size();
             researchedPlaces = researched.size();
             toResearchPlaces = toResearch.size();
+            visitedPlaces = visited.size();
+            planningPlaces = planning.size();
+            wantToGoPlaces = wantToGo.size();
+            totalCountries = uniqueCountries.size();
+            totalTrips = trips.size();
         };
     };
 

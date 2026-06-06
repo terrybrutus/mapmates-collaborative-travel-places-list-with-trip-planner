@@ -25,22 +25,19 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import type { Place, PlaceStatus } from "../backend";
 import { useAuth } from "../contexts/AuthContext";
 import {
+  type FrontendTrip,
+  useAddTrip,
+  useDeleteAllTrips,
+  useDeleteTrip,
   useGetAllPlaces,
   useGetCallerUserProfile,
+  useGetTrips,
   useIsAdmin,
+  useUpdateTrip,
 } from "../hooks/useQueries";
 import PlaceCard from "./PlaceCard";
 
-// Real trip types (these would come from backend when implemented)
-interface Trip {
-  id: string;
-  name: string;
-  description: string;
-  places: Place[];
-  author: string; // Principal as string
-  authorName: string;
-  timestamp: number;
-}
+type Trip = FrontendTrip;
 
 interface PlaceWithDistance extends Place {
   distanceToNext?: number;
@@ -63,10 +60,15 @@ function extractCoordinatesFromNotes(
 }
 
 export default function TripPlanner() {
-  const { username, isAuthenticated, isAdmin: authIsAdmin } = useAuth();
+  const { username, sessionToken, isAuthenticated, isAdmin: authIsAdmin } = useAuth();
   const { data: userProfile } = useGetCallerUserProfile();
   const { data: places = [] } = useGetAllPlaces();
   const { data: isAdmin = authIsAdmin } = useIsAdmin();
+  const { data: trips = [] } = useGetTrips();
+  const addTripMutation = useAddTrip();
+  const updateTripMutation = useUpdateTrip();
+  const deleteTripMutation = useDeleteTrip();
+  const deleteAllTripsMutation = useDeleteAllTrips();
   const [activeView, setActiveView] = useState<"list" | "create" | "detail">(
     "list",
   );
@@ -75,9 +77,6 @@ export default function TripPlanner() {
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   const currentUserId = username || "";
-
-  // Initialize with empty trips array - no hardcoded trips
-  const [trips, setTrips] = useState<Trip[]>([]);
 
   // Calculate distances between places using simple distance calculation
   const calculateDistanceBetweenPlaces = async (
@@ -136,20 +135,14 @@ export default function TripPlanner() {
     description: string;
     selectedPlaces: Place[];
   }) => {
-    if (!isAuthenticated || !userProfile) return;
-
-    const newTrip: Trip = {
-      id: `trip-${Date.now()}`,
-      name: tripData.name,
-      description: tripData.description,
-      places: tripData.selectedPlaces,
-      author: currentUserId,
-      authorName: userProfile.name,
-      timestamp: Date.now(),
-    };
-
+    if (!isAuthenticated || !sessionToken) return;
     try {
-      setTrips((prev) => [newTrip, ...prev]);
+      await addTripMutation.mutateAsync({
+        sessionToken,
+        name: tripData.name,
+        description: tripData.description,
+        placeIds: tripData.selectedPlaces.map((p) => p.id),
+      });
       setActiveView("list");
     } catch (error) {
       console.error("Failed to create trip:", error);
@@ -160,19 +153,15 @@ export default function TripPlanner() {
     tripId: string,
     tripData: { name: string; description: string; selectedPlaces: Place[] },
   ) => {
+    if (!sessionToken) return;
     try {
-      setTrips((prev) =>
-        prev.map((trip) =>
-          trip.id === tripId
-            ? {
-                ...trip,
-                name: tripData.name,
-                description: tripData.description,
-                places: tripData.selectedPlaces,
-              }
-            : trip,
-        ),
-      );
+      await updateTripMutation.mutateAsync({
+        sessionToken,
+        tripId,
+        name: tripData.name,
+        description: tripData.description,
+        placeIds: tripData.selectedPlaces.map((p) => p.id),
+      });
       if (selectedTrip?.id === tripId) {
         setSelectedTrip((prev) =>
           prev
@@ -191,11 +180,9 @@ export default function TripPlanner() {
   };
 
   const handleDeleteTrip = async (tripId: string) => {
-    const trip = trips.find((t) => t.id === tripId);
-    if (!trip) return;
-
+    if (!sessionToken) return;
     try {
-      setTrips((prev) => prev.filter((trip) => trip.id !== tripId));
+      await deleteTripMutation.mutateAsync({ sessionToken, tripId });
       if (selectedTrip?.id === tripId) {
         setSelectedTrip(null);
         setActiveView("list");
@@ -206,8 +193,9 @@ export default function TripPlanner() {
   };
 
   const handleDeleteAllTrips = async () => {
+    if (!sessionToken) return;
     try {
-      setTrips([]);
+      await deleteAllTripsMutation.mutateAsync(sessionToken);
       setSelectedTrip(null);
       setActiveView("list");
       setShowDeleteAllConfirm(false);
@@ -235,8 +223,8 @@ export default function TripPlanner() {
         <Plane className="w-16 h-16 text-gray-400 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Trip Planner</h2>
         <p className="text-gray-600 mb-6">
-          Login with Internet Identity to create and manage trip itineraries
-          with distance calculations.
+          Sign in to MapMates to create and manage trip itineraries with
+          distance calculations.
         </p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-2xl mx-auto">
           <h3 className="font-semibold text-blue-900 mb-3">
