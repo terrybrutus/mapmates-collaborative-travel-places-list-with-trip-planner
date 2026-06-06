@@ -204,28 +204,26 @@ actor {
         };
 
         let passwordHash = hashPassword(password);
-        let verificationToken = generateToken(lowerUsername # email);
 
         let newUser : UserRecord = {
             username = lowerUsername;
             passwordHash;
             email;
             displayName;
-            isEmailVerified = false;
+            isEmailVerified = true;
             isAdmin;
             createdAt = Time.now();
         };
 
         authUsers.add(lowerUsername, newUser);
-        emailVerifications.add(verificationToken, lowerUsername);
 
-        await sendEmail(
+        ignore sendEmail(
             email,
-            "Verify your MapMates account",
-            "Welcome to MapMates, " # displayName # "! Your email verification code is: " # verificationToken,
+            "Welcome to MapMates!",
+            "Hi " # displayName # ", your MapMates account is ready. You can sign in now at mapmates.app.",
         );
 
-        #ok("Registration successful. Please check your email to verify your account.");
+        #ok("Registration successful. You can now sign in.");
     };
 
     public shared func loginUser(

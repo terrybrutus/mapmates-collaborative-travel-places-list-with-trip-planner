@@ -488,21 +488,21 @@ function AuthModal({ onClose }: { onClose: () => void }) {
             className="text-center py-4 space-y-4"
             data-ocid="auth.register_success_state"
           >
-            <div className="text-4xl">✉️</div>
-            <p className="text-white font-semibold">Check your email!</p>
+            <div className="text-4xl">🎉</div>
+            <p className="text-white font-semibold">Account created!</p>
             <p className="text-white/60 text-sm">
-              We sent a verification link to <strong>{regEmail}</strong>. Please
-              verify your account before signing in.
+              You're all set. Sign in with your new credentials.
             </p>
             <button
               type="button"
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors"
               onClick={() => {
                 setTab("signin");
                 setRegSuccess(false);
+                setSiUsername(regUsername);
               }}
             >
-              Back to Sign In
+              Sign In Now
             </button>
           </div>
         )}
