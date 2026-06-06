@@ -27,9 +27,11 @@ interface AuthContextValue extends AuthState {
     password: string,
     email: string,
     displayName: string,
-  ) => Promise<{ ok: true } | { err: string }>;
+  ) => Promise<{ ok: string } | { err: string }>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<{ ok: true } | { err: string }>;
+  verifyEmail: (token: string) => Promise<{ ok: true } | { err: string }>;
+  resendVerification: (username: string) => Promise<{ ok: string } | { err: string }>;
 }
 
 const SESSION_KEY = "mapmates_session";
@@ -122,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     email: string,
     displayName: string,
-  ): Promise<{ ok: true } | { err: string }> => {
+  ): Promise<{ ok: string } | { err: string }> => {
     try {
       const actor = await getActor();
       const result = await actor.register(
@@ -131,10 +133,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         displayName,
       );
-      if (result.__kind__ === "ok") return { ok: true };
+      if (result.__kind__ === "ok") return { ok: result.ok };
       return { err: result.err };
     } catch {
       return { err: "Registration failed. Please try again." };
+    }
+  };
+
+  const verifyEmail = async (
+    token: string,
+  ): Promise<{ ok: true } | { err: string }> => {
+    try {
+      const actor = await getActor();
+      const result = await actor.verifyEmail(token);
+      if (result.__kind__ === "ok") return { ok: true };
+      return { err: result.err };
+    } catch {
+      return { err: "Verification failed. Please try again." };
+    }
+  };
+
+  const resendVerification = async (
+    username: string,
+  ): Promise<{ ok: string } | { err: string }> => {
+    try {
+      const actor = await getActor();
+      const result = await actor.resendVerification(username);
+      if (result.__kind__ === "ok") return { ok: result.ok };
+      return { err: result.err };
+    } catch {
+      return { err: "Could not resend verification." };
     }
   };
 
@@ -174,7 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, register, logout, forgotPassword }}
+      value={{ ...state, login, register, logout, forgotPassword, verifyEmail, resendVerification }}
     >
       {children}
     </AuthContext.Provider>
