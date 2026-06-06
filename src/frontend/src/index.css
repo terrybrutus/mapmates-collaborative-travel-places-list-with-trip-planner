@@ -84,6 +84,10 @@
   }
 }
 
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* Dynamic color shift background - applied globally */
 .dynamic-background {
   transition: background 0.3s ease;

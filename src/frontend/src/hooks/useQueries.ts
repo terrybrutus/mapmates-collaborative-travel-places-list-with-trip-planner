@@ -15,6 +15,22 @@ import { formatPlaceData } from "../utils/textFormatting";
 
 export type { Place, Note, UserProfile, PlaceStatus, BudgetRange };
 
+export interface FrontendTrip {
+  id: string;
+  name: string;
+  description: string;
+  places: Place[];
+  author: string;
+  authorName: string;
+  timestamp: number;
+}
+
+export interface ActivityEntry {
+  username: string;
+  action: string;
+  timestamp: number;
+}
+
 // Extended actor type that includes landing page video methods
 // (these exist in the backend but may not yet be in the generated bindings)
 interface ExtendedActor {
@@ -411,4 +427,180 @@ export function useSafeLandingPageVideo(): {
     videoUrl: videoUrl ?? undefined,
     posterUrl: posterUrl ?? undefined,
   };
+}
+
+// Trip Queries
+export function useGetTrips() {
+  const { actor, isFetching } = useActor(createActor);
+  const { data: places = [] } = useGetAllPlaces();
+
+  return useQuery<FrontendTrip[]>({
+    queryKey: ["trips"],
+    queryFn: async () => {
+      if (!actor) return [];
+      const backendTrips: Array<{
+        id: string;
+        name: string;
+        description: string;
+        placeIds: string[];
+        authorUsername: string;
+        authorName: string;
+        timestamp: bigint;
+      }> = await (actor as any).getTrips();
+      return backendTrips.map((t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        places: t.placeIds
+          .map((pid) => places.find((p) => p.id === pid))
+          .filter((p): p is Place => p != null),
+        author: t.authorUsername,
+        authorName: t.authorName,
+        timestamp: Number(t.timestamp) / 1_000_000,
+      }));
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAddTrip() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sessionToken,
+      name,
+      description,
+      placeIds,
+    }: {
+      sessionToken: string;
+      name: string;
+      description: string;
+      placeIds: string[];
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      const result = await (actor as any).addTrip(sessionToken, name, description, placeIds);
+      if (result.__kind__ === "err") throw new Error(result.err);
+      return result.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useUpdateTrip() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sessionToken,
+      tripId,
+      name,
+      description,
+      placeIds,
+    }: {
+      sessionToken: string;
+      tripId: string;
+      name: string;
+      description: string;
+      placeIds: string[];
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      const result = await (actor as any).updateTrip(sessionToken, tripId, name, description, placeIds);
+      if (result.__kind__ === "err") throw new Error(result.err);
+      return result.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+    },
+  });
+}
+
+export function useDeleteTrip() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sessionToken,
+      tripId,
+    }: {
+      sessionToken: string;
+      tripId: string;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      const result = await (actor as any).deleteTrip(sessionToken, tripId);
+      if (result.__kind__ === "err") throw new Error(result.err);
+      return result.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useDeleteAllTrips() {
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (sessionToken: string) => {
+      if (!actor) throw new Error("Actor not available");
+      const result = await (actor as any).deleteAllTrips(sessionToken);
+      if (result.__kind__ === "err") throw new Error(result.err);
+      return result.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useLogActivity() {
+  const { actor } = useActor(createActor);
+
+  return useMutation({
+    mutationFn: async ({
+      sessionToken,
+      action,
+    }: {
+      sessionToken: string;
+      action: string;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      return (actor as any).logUserActivity(sessionToken, action);
+    },
+  });
+}
+
+// Activity Log
+export function useGetActivityLog() {
+  const { actor, isFetching } = useActor(createActor);
+
+  return useQuery<ActivityEntry[]>({
+    queryKey: ["activityLog"],
+    queryFn: async () => {
+      if (!actor) return [];
+      const entries: Array<{
+        username: string;
+        action: string;
+        timestamp: bigint;
+      }> = await (actor as any).getActivityLog();
+      return entries
+        .map((e) => ({
+          username: e.username,
+          action: e.action,
+          timestamp: Number(e.timestamp),
+        }))
+        .sort((a, b) => b.timestamp - a.timestamp);
+    },
+    enabled: !!actor && !isFetching,
+    refetchInterval: 30_000,
+  });
 }

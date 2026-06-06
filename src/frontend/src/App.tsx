@@ -886,21 +886,10 @@ function VerifyEmailPage({ token }: { token: string }) {
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const { isAuthenticated, isInitializing } = useAuth();
-  const [cursorPosition, setCursorPosition] = useState({ x: 0.5, y: 0.5 });
 
   // Handle /verify?token=... email link clicks (must be after all hooks)
   const verifyToken = new URLSearchParams(window.location.search).get("token");
   const isVerifyRoute = window.location.pathname === "/verify" || (!!verifyToken && !isAuthenticated);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const x = e.clientX / window.innerWidth;
-      const y = e.clientY / window.innerHeight;
-      setCursorPosition({ x, y });
-    };
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   // Handle email verification link clicks (/verify?token=...)
   if (isVerifyRoute && verifyToken && !isInitializing) {
@@ -925,7 +914,7 @@ export default function App() {
   }
 
   if (isAuthenticated) {
-    return <Dashboard cursorPosition={cursorPosition} />;
+    return <Dashboard />;
   }
 
   return <LandingPage />;

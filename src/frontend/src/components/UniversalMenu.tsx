@@ -4,6 +4,7 @@ import {
   CheckCircle,
   Download,
   Film,
+  LogOut,
   Settings,
   Trash2,
   Upload,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { useFileUpload } from "../blob-storage/FileStorage";
 import {
   useDeleteAllPlaces,
@@ -286,6 +288,7 @@ export default function UniversalMenu({
   const [showImportModal, setShowImportModal] = useState(false);
   const deleteAllPlaces = useDeleteAllPlaces();
   const { data: isAdmin = false } = useIsAdmin();
+  const { isAuthenticated, logout } = useAuth();
 
   // Close menu on escape key
   useEffect(() => {
@@ -489,6 +492,24 @@ export default function UniversalMenu({
               </button>
             )}
           </div>
+
+          {/* Account Section */}
+          {isAuthenticated && (
+            <div className="mt-4 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => { logout(); onClose(); }}
+                className="menu-item-button menu-item-button-danger"
+                data-ocid="menu.logout_button"
+              >
+                <LogOut className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <div className="flex-1 text-left">
+                  <div className="font-semibold text-red-900">Sign Out</div>
+                  <div className="text-sm text-red-600">Sign out of your account</div>
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* Admin Settings Section - Only for admin users */}
           {isAdmin && (

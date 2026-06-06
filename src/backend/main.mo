@@ -67,6 +67,16 @@ actor {
         name : Text;
     };
 
+    public type Trip = {
+        id : Text;
+        name : Text;
+        description : Text;
+        placeIds : [Text];
+        authorUsername : Text;
+        authorName : Text;
+        timestamp : Time.Time;
+    };
+
     // ── Auth Types ──────────────────────────────────────────────────────────
     public type UserRecord = {
         username : Text;
@@ -93,6 +103,7 @@ actor {
     let places = Map.empty<Text, Place>();
     let notes = Map.empty<Text, Note>();
     let userProfiles = Map.empty<Principal, UserProfile>();
+    let trips = Map.empty<Text, Trip>();
     let activityLogState = ActivityLog.new();
     let registry = Registry.new();
 
@@ -238,6 +249,8 @@ actor {
         };
 
         authUsers.add(lowerUsername, newUser);
+
+        ActivityLog.logActivity(activityLogState, lowerUsername, "Signed up");
 
         if (emailVerificationRequired) {
             emailVerifications.add(verificationToken, lowerUsername);
@@ -454,10 +467,29 @@ actor {
     };
 
     // Admin: list all users with their verification status
-    public query func listUsers() : async [{ username : Text; displayName : Text; email : Text; isEmailVerified : Bool; isAdmin : Bool }] {
-        authUsers.values().map(func(u) {
-            { username = u.username; displayName = u.displayName; email = u.email; isEmailVerified = u.isEmailVerified; isAdmin = u.isAdmin }
-        }).toArray();
+    public shared func listUsers(
+        sessionToken : Text,
+    ) : async { #ok : [{ username : Text; displayName : Text; email : Text; isEmailVerified : Bool; isAdmin : Bool }]; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (authUsers.get(session.username)) {
+                    case null { #err("User not found") };
+                    case (?user) {
+                        if (not user.isAdmin) {
+                            return #err("Unauthorized: admin only");
+                        };
+                        let result = authUsers.values().map(func(u) {
+                            { username = u.username; displayName = u.displayName; email = u.email; isEmailVerified = u.isEmailVerified; isAdmin = u.isAdmin }
+                        }).toArray();
+                        #ok(result);
+                    };
+                };
+            };
+        };
     };
 
     public shared func logoutUser(sessionToken : Text) : async { #ok : Text; #err : Text } {
@@ -466,6 +498,153 @@ actor {
             case (?_) {
                 authSessions.remove(sessionToken);
                 #ok("Logged out successfully");
+            };
+        };
+    };
+
+    // ── Trip Management ─────────────────────────────────────────────────────
+    public shared func addTrip(
+        sessionToken : Text,
+        name : Text,
+        description : Text,
+        placeIds : [Text],
+    ) : async { #ok : Trip; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (authUsers.get(session.username)) {
+                    case null { #err("User not found") };
+                    case (?user) {
+                        let tripId = generateToken("trip_" # session.username);
+                        let trip : Trip = {
+                            id = tripId;
+                            name;
+                            description;
+                            placeIds;
+                            authorUsername = session.username;
+                            authorName = user.displayName;
+                            timestamp = Time.now();
+                        };
+                        trips.add(tripId, trip);
+                        ActivityLog.logActivity(activityLogState, session.username, "Created trip: " # name);
+                        #ok(trip);
+                    };
+                };
+            };
+        };
+    };
+
+    public query func getTrips() : async [Trip] {
+        trips.values().toArray();
+    };
+
+    public query func getUserTrips(username : Text) : async [Trip] {
+        let lowerUsername = username.toLower();
+        trips.values().filter(func(t) { t.authorUsername == lowerUsername }).toArray();
+    };
+
+    public shared func updateTrip(
+        sessionToken : Text,
+        tripId : Text,
+        name : Text,
+        description : Text,
+        placeIds : [Text],
+    ) : async { #ok : Trip; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (trips.get(tripId)) {
+                    case null { #err("Trip not found") };
+                    case (?trip) {
+                        switch (authUsers.get(session.username)) {
+                            case null { #err("User not found") };
+                            case (?user) {
+                                if (trip.authorUsername != session.username and not user.isAdmin) {
+                                    return #err("Unauthorized");
+                                };
+                                let updated : Trip = { trip with name; description; placeIds };
+                                trips.add(tripId, updated);
+                                #ok(updated);
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+
+    public shared func deleteTrip(
+        sessionToken : Text,
+        tripId : Text,
+    ) : async { #ok : Text; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (trips.get(tripId)) {
+                    case null { #err("Trip not found") };
+                    case (?trip) {
+                        switch (authUsers.get(session.username)) {
+                            case null { #err("User not found") };
+                            case (?user) {
+                                if (trip.authorUsername != session.username and not user.isAdmin) {
+                                    return #err("Unauthorized");
+                                };
+                                trips.remove(tripId);
+                                ActivityLog.logActivity(activityLogState, session.username, "Deleted trip: " # trip.name);
+                                #ok("Trip deleted");
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+
+    public shared func deleteAllTrips(
+        sessionToken : Text,
+    ) : async { #ok : Text; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                switch (authUsers.get(session.username)) {
+                    case null { #err("User not found") };
+                    case (?user) {
+                        if (not user.isAdmin) {
+                            return #err("Only admins can delete all trips");
+                        };
+                        trips.clear();
+                        #ok("All trips deleted");
+                    };
+                };
+            };
+        };
+    };
+
+    // Log a user action from the frontend (session-token based)
+    public shared func logUserActivity(
+        sessionToken : Text,
+        action : Text,
+    ) : async { #ok : Text; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
+                };
+                ActivityLog.logActivity(activityLogState, session.username, action);
+                #ok("Logged");
             };
         };
     };
@@ -572,10 +751,6 @@ actor {
         ActivityLog.getLog(activityLogState);
     };
 
-    public shared ({ caller }) func logUserSignup() : async () {
-        ActivityLog.logSignup(activityLogState, caller);
-    };
-
     // ── Filtering and Search ─────────────────────────────────────────────────
     public query func filterPlacesByCountry(country : Text) : async [Place] {
         let allPlaces = places.values().toArray();
@@ -622,6 +797,11 @@ actor {
         totalPlaces : Nat;
         researchedPlaces : Nat;
         toResearchPlaces : Nat;
+        visitedPlaces : Nat;
+        planningPlaces : Nat;
+        wantToGoPlaces : Nat;
+        totalCountries : Nat;
+        totalTrips : Nat;
     } {
         let allPlaces = places.values().toArray();
         let researched = allPlaces.filter(func(p) {
@@ -630,10 +810,28 @@ actor {
         let toResearch = allPlaces.filter(func(p) {
             p.status.any<PlaceStatus>(func(s) { s == #toResearch });
         });
+        let visited = allPlaces.filter(func(p) {
+            p.status.any<PlaceStatus>(func(s) { s == #visited or s == #wouldReturn });
+        });
+        let planning = allPlaces.filter(func(p) {
+            p.status.any<PlaceStatus>(func(s) { s == #planning });
+        });
+        let wantToGo = allPlaces.filter(func(p) {
+            p.status.any<PlaceStatus>(func(s) { s == #wantToGo });
+        });
+        let uniqueCountries = Map.empty<Text, Bool>();
+        for (p in allPlaces.values()) {
+            uniqueCountries.add(p.country.toLower(), true);
+        };
         {
             totalPlaces = allPlaces.size();
             researchedPlaces = researched.size();
             toResearchPlaces = toResearch.size();
+            visitedPlaces = visited.size();
+            planningPlaces = planning.size();
+            wantToGoPlaces = wantToGo.size();
+            totalCountries = uniqueCountries.size();
+            totalTrips = trips.size();
         };
     };
 
