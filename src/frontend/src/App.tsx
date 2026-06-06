@@ -819,10 +819,78 @@ function LandingPage() {
   );
 }
 
+// ── Email Verification Landing (handles /verify?token=... link clicks) ────────
+function VerifyEmailPage({ token }: { token: string }) {
+  const { verifyEmail } = useAuth();
+  const [status, setStatus] = useState<"pending" | "success" | "error">("pending");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    verifyEmail(token).then((result) => {
+      if ("ok" in result) {
+        setStatus("success");
+        setMessage("Your email is verified! You can now sign in.");
+        // Clear the token from URL without reload
+        window.history.replaceState({}, "", "/");
+      } else {
+        setStatus("error");
+        setMessage(result.err || "Verification failed. The link may have already been used.");
+      }
+    });
+  }, [token, verifyEmail]);
+
+  return (
+    <div
+      className="min-h-[100dvh] flex items-center justify-center p-6 text-center"
+      style={{ background: "linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d1117 100%)" }}
+    >
+      <div className="max-w-sm w-full space-y-4">
+        <img src="https://i.imgur.com/OmgQN1q.png" alt="MapMates" className="h-12 w-auto mx-auto opacity-90" />
+        {status === "pending" && (
+          <>
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-400/30 border-t-blue-400 mx-auto" />
+            <p className="text-white/70">Verifying your email…</p>
+          </>
+        )}
+        {status === "success" && (
+          <>
+            <div className="text-4xl">✅</div>
+            <p className="text-white font-semibold">{message}</p>
+            <button
+              type="button"
+              onClick={() => window.location.replace("/")}
+              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors"
+            >
+              Sign In
+            </button>
+          </>
+        )}
+        {status === "error" && (
+          <>
+            <div className="text-4xl">⚠️</div>
+            <p className="text-white/80 font-medium">{message}</p>
+            <button
+              type="button"
+              onClick={() => window.location.replace("/")}
+              className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors"
+            >
+              Back to MapMates
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const { isAuthenticated, isInitializing } = useAuth();
   const [cursorPosition, setCursorPosition] = useState({ x: 0.5, y: 0.5 });
+
+  // Handle /verify?token=... email link clicks (must be after all hooks)
+  const verifyToken = new URLSearchParams(window.location.search).get("token");
+  const isVerifyRoute = window.location.pathname === "/verify" || (!!verifyToken && !isAuthenticated);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -833,6 +901,11 @@ export default function App() {
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
+
+  // Handle email verification link clicks (/verify?token=...)
+  if (isVerifyRoute && verifyToken && !isInitializing) {
+    return <VerifyEmailPage token={verifyToken} />;
+  }
 
   // Show loading spinner while auth resolves — max ~5s before we show landing anyway
   if (isInitializing) {

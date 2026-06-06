@@ -160,16 +160,34 @@ actor {
         Time.now() < record.expiresAt;
     };
 
-    // Send email via HTTP outcall (best-effort; errors are swallowed)
-    func sendEmail(toEmail : Text, subject : Text, body : Text) : async () {
+    // Send email via Caffeine's managed email infrastructure → Amazon SES.
+    // The HTTP outcall is coordinated across IC replica nodes.
+    // Project identity is established by the canister principal (implicit in the subnet call).
+    func sendEmail(toEmail : Text, subject : Text, htmlBody : Text) : async () {
         let url = "https://api.caffeine.ai/v1/email/send";
-        let jsonBody = "{\"to\":\"" # toEmail # "\",\"subject\":\"" # subject # "\",\"body\":\"" # body # "\"}";
+        let escapedTo = toEmail;
+        let escapedSubject = subject;
+        let escapedBody = htmlBody;
+        let jsonBody = "{"
+            # "\"to\":\"" # escapedTo # "\","
+            # "\"subject\":\"" # escapedSubject # "\","
+            # "\"html\":\"" # escapedBody # "\","
+            # "\"project_id\":\"" # "my-app" # "\""
+            # "}";
         ignore await OutCall.httpPostRequest(
             url,
-            [{ name = "Content-Type"; value = "application/json" }],
+            [
+                { name = "Content-Type"; value = "application/json" },
+                { name = "X-Caffeine-Project"; value = "my-app" },
+            ],
             jsonBody,
             transform,
         );
+    };
+
+    // Build the app's base URL for email links
+    func appBaseUrl() : Text {
+        "https://my-app.caffeine.xyz";
     };
 
     // ── Auth Public Methods ─────────────────────────────────────────────────
@@ -223,17 +241,26 @@ actor {
 
         if (emailVerificationRequired) {
             emailVerifications.add(verificationToken, lowerUsername);
+            let verifyLink = appBaseUrl() # "/verify?token=" # verificationToken;
             ignore sendEmail(
                 email,
                 "Verify your MapMates account",
-                "Hi " # displayName # "! Your MapMates verification code is: " # verificationToken # ". Enter it in the app to activate your account.",
+                "Hi " # displayName # "!<br><br>"
+                # "Click the link below to verify your MapMates account:<br><br>"
+                # "<a href=\\\"" # verifyLink # "\\\">Verify my account</a><br><br>"
+                # "Or paste this link in your browser:<br>" # verifyLink # "<br><br>"
+                # "This link does not expire.<br><br>"
+                # "— The MapMates team",
             );
             #ok("VERIFY:" # verificationToken);
         } else {
             ignore sendEmail(
                 email,
                 "Welcome to MapMates!",
-                "Hi " # displayName # ", your MapMates account is ready. Sign in now!",
+                "Hi " # displayName # "!<br><br>"
+                # "Your MapMates account is ready. "
+                # "<a href=\\\"" # appBaseUrl() # "\\\">Sign in now</a>.<br><br>"
+                # "— The MapMates team",
             );
             #ok("Registration successful. You can now sign in.");
         };
@@ -376,10 +403,15 @@ actor {
                 };
                 let token = generateToken(lowerUsername # user.email # "resend");
                 emailVerifications.add(token, lowerUsername);
+                let verifyLink = appBaseUrl() # "/verify?token=" # token;
                 ignore sendEmail(
                     user.email,
-                    "Your MapMates verification code",
-                    "Hi " # user.displayName # "! Your verification code is: " # token,
+                    "Your MapMates verification link",
+                    "Hi " # user.displayName # "!<br><br>"
+                    # "Here is your new verification link:<br><br>"
+                    # "<a href=\\\"" # verifyLink # "\\\">Verify my account</a><br><br>"
+                    # "Or paste this link in your browser:<br>" # verifyLink # "<br><br>"
+                    # "— The MapMates team",
                 );
                 #ok("VERIFY:" # token);
             };
