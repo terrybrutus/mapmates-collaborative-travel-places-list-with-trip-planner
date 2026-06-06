@@ -112,6 +112,8 @@ actor {
     var founderRegistered : Bool = false;
     // nonce for token uniqueness
     var tokenNonce : Nat = 0;
+    // when false, users can sign in immediately after registration (no email needed)
+    var emailVerificationRequired : Bool = false;
 
     // ── Auth Helpers ────────────────────────────────────────────────────────
 
@@ -204,6 +206,7 @@ actor {
         };
 
         let passwordHash = hashPassword(password);
+        let verifiedAtRegistration = not emailVerificationRequired;
         let verificationToken = generateToken(lowerUsername # email);
 
         let newUser : UserRecord = {
@@ -211,21 +214,29 @@ actor {
             passwordHash;
             email;
             displayName;
-            isEmailVerified = false;
+            isEmailVerified = verifiedAtRegistration;
             isAdmin;
             createdAt = Time.now();
         };
 
         authUsers.add(lowerUsername, newUser);
-        emailVerifications.add(verificationToken, lowerUsername);
 
-        await sendEmail(
-            email,
-            "Verify your MapMates account",
-            "Welcome to MapMates, " # displayName # "! Your email verification code is: " # verificationToken,
-        );
-
-        #ok("Registration successful. Please check your email to verify your account.");
+        if (emailVerificationRequired) {
+            emailVerifications.add(verificationToken, lowerUsername);
+            ignore sendEmail(
+                email,
+                "Verify your MapMates account",
+                "Hi " # displayName # "! Your MapMates verification code is: " # verificationToken # ". Enter it in the app to activate your account.",
+            );
+            #ok("VERIFY:" # verificationToken);
+        } else {
+            ignore sendEmail(
+                email,
+                "Welcome to MapMates!",
+                "Hi " # displayName # ", your MapMates account is ready. Sign in now!",
+            );
+            #ok("Registration successful. You can now sign in.");
+        };
     };
 
     public shared func loginUser(
@@ -352,6 +363,69 @@ actor {
                 };
             };
         };
+    };
+
+    // Resend verification email (or return token in response as fallback)
+    public shared func resendVerification(username : Text) : async { #ok : Text; #err : Text } {
+        let lowerUsername = username.toLower();
+        switch (authUsers.get(lowerUsername)) {
+            case null { #err("User not found") };
+            case (?user) {
+                if (user.isEmailVerified) {
+                    return #err("Email already verified");
+                };
+                let token = generateToken(lowerUsername # user.email # "resend");
+                emailVerifications.add(token, lowerUsername);
+                ignore sendEmail(
+                    user.email,
+                    "Your MapMates verification code",
+                    "Hi " # user.displayName # "! Your verification code is: " # token,
+                );
+                #ok("VERIFY:" # token);
+            };
+        };
+    };
+
+    // Admin: toggle whether email verification is required for new sign-ups
+    public shared func setEmailVerificationRequired(required : Bool) : async { #ok : Text; #err : Text } {
+        // Only the first admin (founder) can change this setting
+        if (not founderRegistered) {
+            return #err("No admin registered yet");
+        };
+        emailVerificationRequired := required;
+        #ok(if (required) "Email verification is now required" else "Email verification is now optional");
+    };
+
+    public query func getEmailVerificationRequired() : async Bool {
+        emailVerificationRequired;
+    };
+
+    // Admin: manually verify a user's email
+    public shared func adminVerifyUser(username : Text) : async { #ok : Text; #err : Text } {
+        let lowerUsername = username.toLower();
+        switch (authUsers.get(lowerUsername)) {
+            case null { #err("User not found") };
+            case (?user) {
+                let updatedUser : UserRecord = { user with isEmailVerified = true };
+                authUsers.add(lowerUsername, updatedUser);
+                // Remove any pending verification tokens for this user
+                let tokensToRemove = emailVerifications.entries()
+                    .filter(func((_, u)) { u == lowerUsername })
+                    .map(func((t, _)) { t })
+                    .toArray();
+                for (t in tokensToRemove.values()) {
+                    emailVerifications.remove(t);
+                };
+                #ok("User " # username # " verified successfully");
+            };
+        };
+    };
+
+    // Admin: list all users with their verification status
+    public query func listUsers() : async [{ username : Text; displayName : Text; email : Text; isEmailVerified : Bool; isAdmin : Bool }] {
+        authUsers.values().map(func(u) {
+            { username = u.username; displayName = u.displayName; email = u.email; isEmailVerified = u.isEmailVerified; isAdmin = u.isAdmin }
+        }).toArray();
     };
 
     public shared func logoutUser(sessionToken : Text) : async { #ok : Text; #err : Text } {

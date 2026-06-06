@@ -76,7 +76,7 @@ function LandingVideoBackground({
 type AuthTab = "signin" | "register" | "forgot";
 
 function AuthModal({ onClose }: { onClose: () => void }) {
-  const { login, register, forgotPassword } = useAuth();
+  const { login, register, forgotPassword, verifyEmail, resendVerification } = useAuth();
   const [tab, setTab] = useState<AuthTab>("signin");
 
   // Sign in state
@@ -96,6 +96,13 @@ function AuthModal({ onClose }: { onClose: () => void }) {
   const [regError, setRegError] = useState("");
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
+  // set when backend requires email verification
+  const [pendingVerifyUsername, setPendingVerifyUsername] = useState("");
+  const [verifyToken, setVerifyToken] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMsg, setResendMsg] = useState("");
 
   // Forgot password state
   const [fpEmail, setFpEmail] = useState("");
@@ -148,12 +155,67 @@ function AuthModal({ onClose }: { onClose: () => void }) {
       if ("err" in result) {
         setRegError(result.err);
       } else {
-        setRegSuccess(true);
+        // Backend returns "VERIFY:token" when verification is required,
+        // or a plain success message when verification is disabled
+        if (result.ok.startsWith("VERIFY:")) {
+          const token = result.ok.slice(7);
+          setPendingVerifyUsername(regUsername.trim());
+          setVerifyToken(token);
+          setRegSuccess(true);
+        } else {
+          setRegSuccess(true);
+          // Auto-fill sign in for seamless flow
+          setSiUsername(regUsername.trim());
+        }
       }
     } catch {
       setRegError("Registration failed. Please try again.");
     } finally {
       setRegLoading(false);
+    }
+  };
+
+  const handleVerifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifyError("");
+    setVerifyLoading(true);
+    try {
+      const result = await verifyEmail(verifyToken.trim());
+      if ("err" in result) {
+        setVerifyError(result.err);
+      } else {
+        // Verified — go to sign in with username pre-filled
+        setTab("signin");
+        setSiUsername(pendingVerifyUsername);
+        setPendingVerifyUsername("");
+        setVerifyToken("");
+        setRegSuccess(false);
+      }
+    } catch {
+      setVerifyError("Verification failed. Please try again.");
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendMsg("");
+    setResendLoading(true);
+    try {
+      const result = await resendVerification(pendingVerifyUsername);
+      if ("ok" in result) {
+        // Update the displayed token if backend returns a new one
+        if (result.ok.startsWith("VERIFY:")) {
+          setVerifyToken(result.ok.slice(7));
+        }
+        setResendMsg("New code sent. Check your email or use the code shown below.");
+      } else {
+        setResendMsg("Could not resend. Please try again.");
+      }
+    } catch {
+      setResendMsg("Could not resend. Please try again.");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -483,26 +545,71 @@ function AuthModal({ onClose }: { onClose: () => void }) {
           </form>
         )}
 
-        {tab === "register" && regSuccess && (
+        {tab === "register" && regSuccess && !pendingVerifyUsername && (
           <div
             className="text-center py-4 space-y-4"
             data-ocid="auth.register_success_state"
           >
-            <div className="text-4xl">✉️</div>
-            <p className="text-white font-semibold">Check your email!</p>
-            <p className="text-white/60 text-sm">
-              We sent a verification link to <strong>{regEmail}</strong>. Please
-              verify your account before signing in.
-            </p>
+            <div className="text-4xl">🎉</div>
+            <p className="text-white font-semibold">Account created!</p>
+            <p className="text-white/60 text-sm">You're all set. Sign in with your new credentials.</p>
             <button
               type="button"
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-              onClick={() => {
-                setTab("signin");
-                setRegSuccess(false);
-              }}
+              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors"
+              onClick={() => { setTab("signin"); setRegSuccess(false); }}
             >
-              Back to Sign In
+              Sign In Now
+            </button>
+          </div>
+        )}
+
+        {/* ── Email Verification Required ── */}
+        {tab === "register" && regSuccess && pendingVerifyUsername && (
+          <div className="space-y-4" data-ocid="auth.verify_email_state">
+            <div className="text-center">
+              <div className="text-4xl mb-2">✉️</div>
+              <p className="text-white font-semibold">Verify your email</p>
+              <p className="text-white/60 text-sm mt-1">
+                Enter the verification code below. Check your inbox, or use the code shown here if email delivery is still being configured.
+              </p>
+            </div>
+            {/* Show token inline as fallback when email may not be delivered */}
+            {verifyToken && (
+              <div className="p-3 rounded-lg text-center" style={{ background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.3)" }}>
+                <p className="text-white/50 text-xs mb-1">Your verification code</p>
+                <p className="text-blue-300 font-mono text-sm break-all select-all">{verifyToken}</p>
+              </div>
+            )}
+            <form onSubmit={handleVerifyEmail} className="space-y-3">
+              <input
+                type="text"
+                value={verifyToken}
+                onChange={(e) => setVerifyToken(e.target.value)}
+                placeholder="Paste verification code"
+                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400/60 font-mono text-sm"
+                style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
+                data-ocid="auth.verify_token_input"
+              />
+              {verifyError && <p className="text-red-400 text-sm">{verifyError}</p>}
+              {resendMsg && <p className="text-blue-300 text-sm">{resendMsg}</p>}
+              <button
+                type="submit"
+                disabled={verifyLoading || !verifyToken.trim()}
+                className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                data-ocid="auth.verify_submit_button"
+              >
+                {verifyLoading && <Loader className="w-4 h-4 animate-spin" />}
+                {verifyLoading ? "Verifying…" : "Verify & Sign In"}
+              </button>
+            </form>
+            <button
+              type="button"
+              disabled={resendLoading}
+              onClick={handleResendVerification}
+              className="w-full text-center text-sm text-white/50 hover:text-white/80 transition-colors py-1 disabled:opacity-50"
+              data-ocid="auth.resend_verification_button"
+            >
+              {resendLoading ? "Sending…" : "Resend code"}
             </button>
           </div>
         )}
