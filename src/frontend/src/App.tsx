@@ -1,8 +1,40 @@
 import { Eye, EyeOff, Loader } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import React from "react";
 import Dashboard from "./components/Dashboard";
 import { useAuth } from "./contexts/AuthContext";
 import { useSafeLandingPageVideo } from "./hooks/useQueries";
+
+// ── Minimal error boundary to silently swallow backend-dependent child crashes ─
+class SilentErrorBoundary extends React.Component<
+  { children: ReactNode; fallback?: ReactNode },
+  { crashed: boolean }
+> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props);
+    this.state = { crashed: false };
+  }
+  static getDerivedStateFromError() {
+    return { crashed: true };
+  }
+  render() {
+    if (this.state.crashed) return this.props.fallback ?? null;
+    return this.props.children;
+  }
+}
+
+// ── Video hook isolated in its own component so crashes stay contained ─────────
+function LandingVideoLoader({
+  onVideo,
+}: {
+  onVideo: (videoUrl?: string, posterUrl?: string) => void;
+}) {
+  const { videoUrl, posterUrl } = useSafeLandingPageVideo();
+  useEffect(() => {
+    onVideo(videoUrl, posterUrl);
+  }, [videoUrl, posterUrl, onVideo]);
+  return null;
+}
 
 // ── Landing page dark gradient fallback (always visible) ────────────────────
 const FALLBACK_BG =
@@ -564,9 +596,13 @@ function AuthModal({ onClose }: { onClose: () => void }) {
 function LandingPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ x: 0.5, y: 0.5 });
+  const [videoUrl, setVideoUrl] = useState<string | undefined>();
+  const [posterUrl, setPosterUrl] = useState<string | undefined>();
 
-  // Safe video query — never crashes even if actor is unavailable
-  const { videoUrl, posterUrl } = useSafeLandingPageVideo();
+  const handleVideo = (v?: string, p?: string) => {
+    setVideoUrl(v);
+    setPosterUrl(p);
+  };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -596,6 +632,11 @@ function LandingPage() {
       style={{ background: FALLBACK_BG }}
       data-ocid="landing.page"
     >
+      {/* Load video URL from backend; isolated so backend errors can't crash the page */}
+      <SilentErrorBoundary>
+        <LandingVideoLoader onVideo={handleVideo} />
+      </SilentErrorBoundary>
+
       {/* ── Background layer ── */}
       {videoUrl ? (
         <LandingVideoBackground videoUrl={videoUrl} posterUrl={posterUrl} />
