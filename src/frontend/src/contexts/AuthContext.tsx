@@ -18,20 +18,10 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (
-    username: string,
-    password: string,
-  ) => Promise<{ ok: true } | { err: string }>;
-  register: (
-    username: string,
-    password: string,
-    email: string,
-    displayName: string,
-  ) => Promise<{ ok: string } | { err: string }>;
+  login: (username: string, password: string) => Promise<{ ok: true } | { err: string }>;
+  register: (username: string, password: string, displayName: string) => Promise<{ ok: true } | { err: string }>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<{ ok: true } | { err: string }>;
-  verifyEmail: (token: string) => Promise<{ ok: true } | { err: string }>;
-  resendVerification: (username: string) => Promise<{ ok: string } | { err: string }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: true } | { err: string }>;
 }
 
 const SESSION_KEY = "mapmates_session";
@@ -61,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isInitializing: true,
   });
 
-  // On mount — restore session from localStorage
   useEffect(() => {
     const storedToken = localStorage.getItem(SESSION_KEY);
     if (!storedToken) {
@@ -105,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(SESSION_KEY, sessionToken);
         setState({
           sessionToken,
-          username,
+          username: username.toLowerCase(),
           displayName,
           isAdmin,
           isAuthenticated: true,
@@ -115,54 +104,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return { err: result.err };
     } catch {
-      return { err: "Login failed. Please try again." };
+      return { err: "Sign in failed. Please try again." };
     }
   };
 
   const register = async (
     username: string,
     password: string,
-    email: string,
     displayName: string,
-  ): Promise<{ ok: string } | { err: string }> => {
-    try {
-      const actor = await getActor();
-      const result = await actor.register(
-        username,
-        password,
-        email,
-        displayName,
-      );
-      if (result.__kind__ === "ok") return { ok: result.ok };
-      return { err: result.err };
-    } catch {
-      return { err: "Registration failed. Please try again." };
-    }
-  };
-
-  const verifyEmail = async (
-    token: string,
   ): Promise<{ ok: true } | { err: string }> => {
     try {
       const actor = await getActor();
-      const result = await actor.verifyEmail(token);
+      const result = await (actor as any).register(username, password, displayName);
       if (result.__kind__ === "ok") return { ok: true };
       return { err: result.err };
     } catch {
-      return { err: "Verification failed. Please try again." };
-    }
-  };
-
-  const resendVerification = async (
-    username: string,
-  ): Promise<{ ok: string } | { err: string }> => {
-    try {
-      const actor = await getActor();
-      const result = await actor.resendVerification(username);
-      if (result.__kind__ === "ok") return { ok: result.ok };
-      return { err: result.err };
-    } catch {
-      return { err: "Could not resend verification." };
+      return { err: "Registration failed. Please try again." };
     }
   };
 
@@ -173,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const actor = await getActor();
         await actor.logoutUser(token);
       } catch {
-        // ignore logout errors
+        // ignore
       }
     }
     localStorage.removeItem(SESSION_KEY);
@@ -187,23 +144,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const forgotPassword = async (
-    email: string,
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string,
   ): Promise<{ ok: true } | { err: string }> => {
+    if (!state.sessionToken) return { err: "Not signed in" };
     try {
       const actor = await getActor();
-      const result = await actor.forgotPassword(email);
+      const result = await (actor as any).changePassword(
+        state.sessionToken,
+        currentPassword,
+        newPassword,
+      );
       if (result.__kind__ === "ok") return { ok: true };
       return { err: result.err };
     } catch {
-      return { err: "Failed to send reset email. Please try again." };
+      return { err: "Failed to change password. Please try again." };
     }
   };
 
   return (
-    <AuthContext.Provider
-      value={{ ...state, login, register, logout, forgotPassword, verifyEmail, resendVerification }}
-    >
+    <AuthContext.Provider value={{ ...state, login, register, logout, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
