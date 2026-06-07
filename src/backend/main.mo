@@ -78,15 +78,25 @@ actor {
     };
 
     // ── Auth Types ──────────────────────────────────────────────────────────
+    // email and isEmailVerified are kept for stable-variable upgrade compatibility.
+    // New registrations set email = "" and isEmailVerified = false.
     public type UserRecord = {
         username : Text;
         passwordHash : Text;
+        email : Text;
         displayName : Text;
+        isEmailVerified : Bool;
         isAdmin : Bool;
         createdAt : Time.Time;
     };
 
     public type SessionRecord = {
+        username : Text;
+        expiresAt : Time.Time;
+    };
+
+    // Retained for stable-variable upgrade compatibility — not used in new code.
+    public type PasswordResetRecord = {
         username : Text;
         expiresAt : Time.Time;
     };
@@ -103,7 +113,7 @@ actor {
     let registry = Registry.new();
 
     // Username-based activity log — stable array independent of activityLogState.
-    stable var activityLog : [{ username : Text; action : Text; timestamp : Time.Time }] = [];
+    var activityLog : [{ username : Text; action : Text; timestamp : Time.Time }] = [];
 
     func appendActivity(username : Text, action : Text) {
         let entry = { username; action; timestamp = Time.now() };
@@ -122,6 +132,11 @@ actor {
     let authUsers = Map.empty<Text, UserRecord>();
     // keyed by session token
     let authSessions = Map.empty<Text, SessionRecord>();
+    // Legacy stable vars retained for upgrade compatibility — not used in new code.
+    let emailVerifications = Map.empty<Text, Text>();
+    let passwordResets = Map.empty<Text, PasswordResetRecord>();
+    var emailVerificationRequired : Bool = false;
+    let resetDuration : Int = 24 * 60 * 60 * 1_000_000_000;
     // tracks whether the founder has registered (first user becomes admin)
     var founderRegistered : Bool = false;
     // nonce for token uniqueness
@@ -196,7 +211,9 @@ actor {
         let newUser : UserRecord = {
             username = lowerUsername;
             passwordHash = hashPassword(password);
+            email = "";
             displayName;
+            isEmailVerified = false;
             isAdmin;
             createdAt = Time.now();
         };
