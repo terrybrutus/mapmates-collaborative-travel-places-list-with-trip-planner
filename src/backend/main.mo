@@ -9,7 +9,6 @@ import Char "mo:base/Char";
 import Float "mo:base/Float";
 import Array "mo:core/Array";
 import Iter "mo:core/Iter";
-import List "mo:core/List";
 import AccessControl "authorization/access-control";
 import OutCall "http-outcalls/outcall";
 import Registry "blob-storage/registry";
@@ -99,33 +98,27 @@ actor {
         expiresAt : Time.Time;
     };
 
-    // ── Stable activity log storage ──────────────────────────────────────────
-    // We persist activity entries as a plain stable array (new shape: username Text).
-    // The in-memory activityLogState is rebuilt from this array on each upgrade.
-    // This avoids stable-variable type-incompatibility errors when ActivityEntry changes.
-    stable var stableActivityEntries : [{ username : Text; action : Text; timestamp : Time.Time }] = [];
-
     // ── Existing State ──────────────────────────────────────────────────────
     let accessControlState = AccessControl.initState();
     let places = Map.empty<Text, Place>();
     let notes = Map.empty<Text, Note>();
     let userProfiles = Map.empty<Principal, UserProfile>();
     let trips = Map.empty<Text, Trip>();
-    // activityLogState is transient (not stable) — rebuilt from stableActivityEntries on each upgrade.
-    // Using `transient` prevents IC stable-var type-compatibility errors when ActivityEntry changes.
-    transient let activityLogState = ActivityLog.new();
+    // activityLogState keeps its original type (user : Principal) so it remains
+    // stable-compatible across upgrades. New username-based entries go to activityLog.
+    let activityLogState = ActivityLog.new();
     let registry = Registry.new();
 
-    // Restore activity log entries from stable storage after upgrade
-    system func postupgrade() {
-        for (e in stableActivityEntries.values()) {
-            ActivityLog.logActivity(activityLogState, e.username, e.action);
-        };
-    };
+    // Username-based activity log — stable array independent of activityLogState.
+    stable var activityLog : [{ username : Text; action : Text; timestamp : Time.Time }] = [];
 
-    // Save activity log entries to stable storage before upgrade
-    system func preupgrade() {
-        stableActivityEntries := ActivityLog.getLog(activityLogState);
+    func appendActivity(username : Text, action : Text) {
+        let entry = { username; action; timestamp = Time.now() };
+        let prev = activityLog;
+        activityLog := Array.tabulate<{ username : Text; action : Text; timestamp : Time.Time }>(
+            prev.size() + 1,
+            func(i) { if (i < prev.size()) prev[i] else entry },
+        );
     };
 
     var landingPageVideoPath : ?Text = null;
@@ -271,7 +264,7 @@ actor {
 
         authUsers.add(lowerUsername, newUser);
 
-        ActivityLog.logActivity(activityLogState, lowerUsername, "Signed up");
+        appendActivity(lowerUsername, "Signed up");
 
         if (emailVerificationRequired) {
             emailVerifications.add(verificationToken, lowerUsername);
@@ -550,7 +543,7 @@ actor {
                             timestamp = Time.now();
                         };
                         trips.add(tripId, trip);
-                        ActivityLog.logActivity(activityLogState, session.username, "Created trip: " # name);
+                        appendActivity(session.username, "Created trip: " # name);
                         #ok(trip);
                     };
                 };
@@ -620,7 +613,7 @@ actor {
                                     return #err("Unauthorized");
                                 };
                                 trips.remove(tripId);
-                                ActivityLog.logActivity(activityLogState, session.username, "Deleted trip: " # trip.name);
+                                appendActivity(session.username, "Deleted trip: " # trip.name);
                                 #ok("Trip deleted");
                             };
                         };
@@ -664,7 +657,7 @@ actor {
                 if (not isSessionValid(session)) {
                     return #err("Session expired");
                 };
-                ActivityLog.logActivity(activityLogState, session.username, action);
+                appendActivity(session.username, action);
                 #ok("Logged");
             };
         };
@@ -768,8 +761,8 @@ actor {
     };
 
     // ── Activity Log ─────────────────────────────────────────────────────────
-    public query func getActivityLog() : async [ActivityLog.ActivityEntry] {
-        ActivityLog.getLog(activityLogState);
+    public query func getActivityLog() : async [{ username : Text; action : Text; timestamp : Time.Time }] {
+        activityLog;
     };
 
     // ── Filtering and Search ─────────────────────────────────────────────────

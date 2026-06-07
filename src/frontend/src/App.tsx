@@ -58,7 +58,6 @@ function LandingVideoBackground({
       loop
       playsInline
       poster={posterUrl}
-      aria-hidden="true"
       onError={(e) => {
         // If video fails to load, hide it so the fallback gradient shows
         const el = e.currentTarget as HTMLVideoElement;
