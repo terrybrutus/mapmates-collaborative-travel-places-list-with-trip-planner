@@ -81,19 +81,12 @@ actor {
     public type UserRecord = {
         username : Text;
         passwordHash : Text;
-        email : Text;
         displayName : Text;
-        isEmailVerified : Bool;
         isAdmin : Bool;
         createdAt : Time.Time;
     };
 
     public type SessionRecord = {
-        username : Text;
-        expiresAt : Time.Time;
-    };
-
-    public type PasswordResetRecord = {
         username : Text;
         expiresAt : Time.Time;
     };
@@ -129,16 +122,10 @@ actor {
     let authUsers = Map.empty<Text, UserRecord>();
     // keyed by session token
     let authSessions = Map.empty<Text, SessionRecord>();
-    // email verification: token → lowercase username
-    let emailVerifications = Map.empty<Text, Text>();
-    // password reset: token → PasswordResetRecord
-    let passwordResets = Map.empty<Text, PasswordResetRecord>();
-    // tracks whether the founder has registered
+    // tracks whether the founder has registered (first user becomes admin)
     var founderRegistered : Bool = false;
     // nonce for token uniqueness
     var tokenNonce : Nat = 0;
-    // when false, users can sign in immediately after registration (no email needed)
-    var emailVerificationRequired : Bool = false;
 
     // ── Auth Helpers ────────────────────────────────────────────────────────
 
@@ -174,60 +161,25 @@ actor {
 
     // 30 days in nanoseconds
     let sessionDuration : Int = 30 * 24 * 60 * 60 * 1_000_000_000;
-    // 24 hours in nanoseconds
-    let resetDuration : Int = 24 * 60 * 60 * 1_000_000_000;
 
     func isSessionValid(session : SessionRecord) : Bool {
         Time.now() < session.expiresAt;
     };
 
-    func isResetValid(record : PasswordResetRecord) : Bool {
-        Time.now() < record.expiresAt;
-    };
-
-    // Send email via Caffeine's managed email infrastructure → Amazon SES.
-    // The HTTP outcall is coordinated across IC replica nodes.
-    // Project identity is established by the canister principal (implicit in the subnet call).
-    func sendEmail(toEmail : Text, subject : Text, htmlBody : Text) : async () {
-        let url = "https://api.caffeine.ai/v1/email/send";
-        let escapedTo = toEmail;
-        let escapedSubject = subject;
-        let escapedBody = htmlBody;
-        let jsonBody = "{"
-            # "\"to\":\"" # escapedTo # "\","
-            # "\"subject\":\"" # escapedSubject # "\","
-            # "\"html\":\"" # escapedBody # "\","
-            # "\"project_id\":\"" # "my-app" # "\""
-            # "}";
-        ignore await OutCall.httpPostRequest(
-            url,
-            [
-                { name = "Content-Type"; value = "application/json" },
-                { name = "X-Caffeine-Project"; value = "my-app" },
-            ],
-            jsonBody,
-            transform,
-        );
-    };
-
-    // Build the app's base URL for email links
-    func appBaseUrl() : Text {
-        "https://my-app.caffeine.xyz";
-    };
-
     // ── Auth Public Methods ─────────────────────────────────────────────────
 
+    // Register with username, password, and display name — no email required.
+    // The first user to register automatically becomes admin.
     public shared func register(
         username : Text,
         password : Text,
-        email : Text,
         displayName : Text,
     ) : async { #ok : Text; #err : Text } {
+        if (username.size() == 0 or displayName.size() == 0) {
+            return #err("Username and display name are required");
+        };
         if (password.size() < 8) {
             return #err("Password must be at least 8 characters");
-        };
-        if (username.size() == 0 or email.size() == 0 or displayName.size() == 0) {
-            return #err("Username, email, and display name are required");
         };
 
         let lowerUsername = username.toLower();
@@ -236,61 +188,23 @@ actor {
             return #err("Username already taken");
         };
 
-        let emailTaken = authUsers.entries().any(func((_, u)) {
-            u.email.toLower() == email.toLower()
-        });
-        if (emailTaken) {
-            return #err("Email already registered");
-        };
-
         let isAdmin = not founderRegistered;
         if (isAdmin) {
             founderRegistered := true;
         };
 
-        let passwordHash = hashPassword(password);
-        let verifiedAtRegistration = not emailVerificationRequired;
-        let verificationToken = generateToken(lowerUsername # email);
-
         let newUser : UserRecord = {
             username = lowerUsername;
-            passwordHash;
-            email;
+            passwordHash = hashPassword(password);
             displayName;
-            isEmailVerified = verifiedAtRegistration;
             isAdmin;
             createdAt = Time.now();
         };
 
         authUsers.add(lowerUsername, newUser);
-
         appendActivity(lowerUsername, "Signed up");
 
-        if (emailVerificationRequired) {
-            emailVerifications.add(verificationToken, lowerUsername);
-            let verifyLink = appBaseUrl() # "/verify?token=" # verificationToken;
-            ignore sendEmail(
-                email,
-                "Verify your MapMates account",
-                "Hi " # displayName # "!<br><br>"
-                # "Click the link below to verify your MapMates account:<br><br>"
-                # "<a href=\\\"" # verifyLink # "\\\">Verify my account</a><br><br>"
-                # "Or paste this link in your browser:<br>" # verifyLink # "<br><br>"
-                # "This link does not expire.<br><br>"
-                # "— The MapMates team",
-            );
-            #ok("VERIFY:" # verificationToken);
-        } else {
-            ignore sendEmail(
-                email,
-                "Welcome to MapMates!",
-                "Hi " # displayName # "!<br><br>"
-                # "Your MapMates account is ready. "
-                # "<a href=\\\"" # appBaseUrl() # "\\\">Sign in now</a>.<br><br>"
-                # "— The MapMates team",
-            );
-            #ok("Registration successful. You can now sign in.");
-        };
+        #ok("Account created! You can now sign in.");
     };
 
     public shared func loginUser(
@@ -304,9 +218,6 @@ actor {
             case (?user) {
                 if (user.passwordHash != hashPassword(password)) {
                     return #err("Invalid username or password");
-                };
-                if (not user.isEmailVerified) {
-                    return #err("Please verify your email before logging in");
                 };
                 let sessionToken = generateToken(lowerUsername # "session");
                 let session : SessionRecord = {
@@ -323,73 +234,30 @@ actor {
         };
     };
 
-    public shared func verifyEmail(token : Text) : async { #ok : Text; #err : Text } {
-        switch (emailVerifications.get(token)) {
-            case null { #err("Invalid or expired verification token") };
-            case (?lowerUsername) {
-                switch (authUsers.get(lowerUsername)) {
-                    case null { #err("User not found") };
-                    case (?user) {
-                        let updatedUser : UserRecord = { user with isEmailVerified = true };
-                        authUsers.add(lowerUsername, updatedUser);
-                        emailVerifications.remove(token);
-                        #ok("Email verified successfully. You can now log in.");
-                    };
-                };
-            };
-        };
-    };
-
-    public shared func forgotPassword(email : Text) : async { #ok : Text; #err : Text } {
-        let lowerEmail = email.toLower();
-        var found : ?UserRecord = null;
-        authUsers.entries().forEach(func((_, u)) {
-            if (u.email.toLower() == lowerEmail) {
-                found := ?u;
-            };
-        });
-        switch (found) {
-            case null {
-                #ok("If that email is registered, you will receive a reset link shortly.");
-            };
-            case (?user) {
-                let resetToken = generateToken(user.username # "reset" # lowerEmail);
-                let record : PasswordResetRecord = {
-                    username = user.username;
-                    expiresAt = Time.now() + resetDuration;
-                };
-                passwordResets.add(resetToken, record);
-                await sendEmail(
-                    email,
-                    "Reset your MapMates password",
-                    "Your password reset code is: " # resetToken # ". This code expires in 24 hours.",
-                );
-                #ok("If that email is registered, you will receive a reset link shortly.");
-            };
-        };
-    };
-
-    public shared func resetPassword(
-        token : Text,
+    // Change password using the current session token
+    public shared func changePassword(
+        sessionToken : Text,
+        currentPassword : Text,
         newPassword : Text,
     ) : async { #ok : Text; #err : Text } {
         if (newPassword.size() < 8) {
-            return #err("Password must be at least 8 characters");
+            return #err("New password must be at least 8 characters");
         };
-        switch (passwordResets.get(token)) {
-            case null { #err("Invalid or expired reset token") };
-            case (?record) {
-                if (not isResetValid(record)) {
-                    passwordResets.remove(token);
-                    return #err("Reset token has expired");
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?session) {
+                if (not isSessionValid(session)) {
+                    return #err("Session expired");
                 };
-                switch (authUsers.get(record.username)) {
+                switch (authUsers.get(session.username)) {
                     case null { #err("User not found") };
                     case (?user) {
-                        let updatedUser : UserRecord = { user with passwordHash = hashPassword(newPassword) };
-                        authUsers.add(record.username, updatedUser);
-                        passwordResets.remove(token);
-                        #ok("Password reset successfully. You can now log in.");
+                        if (user.passwordHash != hashPassword(currentPassword)) {
+                            return #err("Current password is incorrect");
+                        };
+                        let updated : UserRecord = { user with passwordHash = hashPassword(newPassword) };
+                        authUsers.add(session.username, updated);
+                        #ok("Password changed successfully");
                     };
                 };
             };
@@ -419,71 +287,20 @@ actor {
         };
     };
 
-    // Resend verification email (or return token in response as fallback)
-    public shared func resendVerification(username : Text) : async { #ok : Text; #err : Text } {
-        let lowerUsername = username.toLower();
-        switch (authUsers.get(lowerUsername)) {
-            case null { #err("User not found") };
-            case (?user) {
-                if (user.isEmailVerified) {
-                    return #err("Email already verified");
-                };
-                let token = generateToken(lowerUsername # user.email # "resend");
-                emailVerifications.add(token, lowerUsername);
-                let verifyLink = appBaseUrl() # "/verify?token=" # token;
-                ignore sendEmail(
-                    user.email,
-                    "Your MapMates verification link",
-                    "Hi " # user.displayName # "!<br><br>"
-                    # "Here is your new verification link:<br><br>"
-                    # "<a href=\\\"" # verifyLink # "\\\">Verify my account</a><br><br>"
-                    # "Or paste this link in your browser:<br>" # verifyLink # "<br><br>"
-                    # "— The MapMates team",
-                );
-                #ok("VERIFY:" # token);
+    public shared func logoutUser(sessionToken : Text) : async { #ok : Text; #err : Text } {
+        switch (authSessions.get(sessionToken)) {
+            case null { #err("Invalid session") };
+            case (?_) {
+                authSessions.remove(sessionToken);
+                #ok("Logged out successfully");
             };
         };
     };
 
-    // Admin: toggle whether email verification is required for new sign-ups
-    public shared func setEmailVerificationRequired(required : Bool) : async { #ok : Text; #err : Text } {
-        // Only the first admin (founder) can change this setting
-        if (not founderRegistered) {
-            return #err("No admin registered yet");
-        };
-        emailVerificationRequired := required;
-        #ok(if (required) "Email verification is now required" else "Email verification is now optional");
-    };
-
-    public query func getEmailVerificationRequired() : async Bool {
-        emailVerificationRequired;
-    };
-
-    // Admin: manually verify a user's email
-    public shared func adminVerifyUser(username : Text) : async { #ok : Text; #err : Text } {
-        let lowerUsername = username.toLower();
-        switch (authUsers.get(lowerUsername)) {
-            case null { #err("User not found") };
-            case (?user) {
-                let updatedUser : UserRecord = { user with isEmailVerified = true };
-                authUsers.add(lowerUsername, updatedUser);
-                // Remove any pending verification tokens for this user
-                let tokensToRemove = emailVerifications.entries()
-                    .filter(func((_, u)) { u == lowerUsername })
-                    .map(func((t, _)) { t })
-                    .toArray();
-                for (t in tokensToRemove.values()) {
-                    emailVerifications.remove(t);
-                };
-                #ok("User " # username # " verified successfully");
-            };
-        };
-    };
-
-    // Admin: list all users with their verification status
+    // Admin: list all users
     public shared func listUsers(
         sessionToken : Text,
-    ) : async { #ok : [{ username : Text; displayName : Text; email : Text; isEmailVerified : Bool; isAdmin : Bool }]; #err : Text } {
+    ) : async { #ok : [{ username : Text; displayName : Text; isAdmin : Bool }]; #err : Text } {
         switch (authSessions.get(sessionToken)) {
             case null { #err("Invalid session") };
             case (?session) {
@@ -497,21 +314,11 @@ actor {
                             return #err("Unauthorized: admin only");
                         };
                         let result = authUsers.values().map(func(u) {
-                            { username = u.username; displayName = u.displayName; email = u.email; isEmailVerified = u.isEmailVerified; isAdmin = u.isAdmin }
+                            { username = u.username; displayName = u.displayName; isAdmin = u.isAdmin }
                         }).toArray();
                         #ok(result);
                     };
                 };
-            };
-        };
-    };
-
-    public shared func logoutUser(sessionToken : Text) : async { #ok : Text; #err : Text } {
-        switch (authSessions.get(sessionToken)) {
-            case null { #err("Invalid session") };
-            case (?_) {
-                authSessions.remove(sessionToken);
-                #ok("Logged out successfully");
             };
         };
     };
