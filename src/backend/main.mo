@@ -9,6 +9,7 @@ import Char "mo:base/Char";
 import Float "mo:base/Float";
 import Array "mo:core/Array";
 import Iter "mo:core/Iter";
+import List "mo:core/List";
 import AccessControl "authorization/access-control";
 import OutCall "http-outcalls/outcall";
 import Registry "blob-storage/registry";
@@ -98,14 +99,34 @@ actor {
         expiresAt : Time.Time;
     };
 
+    // ── Stable activity log storage ──────────────────────────────────────────
+    // We persist activity entries as a plain stable array (new shape: username Text).
+    // The in-memory activityLogState is rebuilt from this array on each upgrade.
+    // This avoids stable-variable type-incompatibility errors when ActivityEntry changes.
+    stable var stableActivityEntries : [{ username : Text; action : Text; timestamp : Time.Time }] = [];
+
     // ── Existing State ──────────────────────────────────────────────────────
     let accessControlState = AccessControl.initState();
     let places = Map.empty<Text, Place>();
     let notes = Map.empty<Text, Note>();
     let userProfiles = Map.empty<Principal, UserProfile>();
     let trips = Map.empty<Text, Trip>();
-    let activityLogState = ActivityLog.new();
+    // activityLogState is transient (not stable) — rebuilt from stableActivityEntries on each upgrade.
+    // Using `transient` prevents IC stable-var type-compatibility errors when ActivityEntry changes.
+    transient let activityLogState = ActivityLog.new();
     let registry = Registry.new();
+
+    // Restore activity log entries from stable storage after upgrade
+    system func postupgrade() {
+        for (e in stableActivityEntries.values()) {
+            ActivityLog.logActivity(activityLogState, e.username, e.action);
+        };
+    };
+
+    // Save activity log entries to stable storage before upgrade
+    system func preupgrade() {
+        stableActivityEntries := ActivityLog.getLog(activityLogState);
+    };
 
     var landingPageVideoPath : ?Text = null;
     var landingPagePosterPath : ?Text = null;

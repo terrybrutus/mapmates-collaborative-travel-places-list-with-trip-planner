@@ -30,7 +30,6 @@ import {
   useDeleteAllTrips,
   useDeleteTrip,
   useGetAllPlaces,
-  useGetCallerUserProfile,
   useGetTrips,
   useIsAdmin,
   useUpdateTrip,
@@ -61,7 +60,6 @@ function extractCoordinatesFromNotes(
 
 export default function TripPlanner() {
   const { username, sessionToken, isAuthenticated, isAdmin: authIsAdmin } = useAuth();
-  const { data: userProfile } = useGetCallerUserProfile();
   const { data: places = [] } = useGetAllPlaces();
   const { data: isAdmin = authIsAdmin } = useIsAdmin();
   const { data: trips = [] } = useGetTrips();

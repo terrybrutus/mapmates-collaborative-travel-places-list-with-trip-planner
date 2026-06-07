@@ -51,14 +51,12 @@ function LandingVideoBackground({
   if (!videoUrl) return null;
 
   return (
-    // biome-ignore lint/a11y/noAriaHiddenOnFocusable: decorative background video
     <video
       className="absolute inset-0 w-full h-full object-cover"
       autoPlay
       muted
       loop
       playsInline
-      tabIndex={-1}
       poster={posterUrl}
       aria-hidden="true"
       onError={(e) => {
