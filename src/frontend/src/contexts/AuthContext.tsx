@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ ok: true } | { err: string }> => {
     try {
       const actor = await getActor();
-      const result = await (actor as any).register(username, password, displayName);
+      const result = await actor.register(username, password, displayName);
       if (result.__kind__ === "ok") return { ok: true };
       return { err: result.err };
     } catch {

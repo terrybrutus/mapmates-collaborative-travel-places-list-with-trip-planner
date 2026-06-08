@@ -143,7 +143,7 @@ export interface backendInterface {
     }>;
     nearbySearch(lat: number, lon: number): Promise<string>;
     queryAutocomplete(input: string): Promise<string>;
-    register(username: string, password: string, email: string, displayName: string): Promise<{
+    register(username: string, password: string, displayName: string): Promise<{
         __kind__: "ok";
         ok: string;
     } | {

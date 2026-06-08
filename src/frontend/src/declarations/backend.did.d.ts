@@ -128,7 +128,7 @@ export interface _SERVICE {
   'nearbySearch' : ActorMethod<[number, number], string>,
   'queryAutocomplete' : ActorMethod<[string], string>,
   'register' : ActorMethod<
-    [string, string, string, string],
+    [string, string, string],
     { 'ok' : string } |
       { 'err' : string }
   >,

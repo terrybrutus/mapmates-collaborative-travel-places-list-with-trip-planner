@@ -161,7 +161,7 @@ export const idlService = IDL.Service({
   'nearbySearch' : IDL.Func([IDL.Float64, IDL.Float64], [IDL.Text], []),
   'queryAutocomplete' : IDL.Func([IDL.Text], [IDL.Text], []),
   'register' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Text, IDL.Text, IDL.Text],
       [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
       [],
     ),
